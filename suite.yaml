@@ -198,6 +198,7 @@ modules:
       tests:
         - name: Bari.Plugins.PythonScripts.Test
           references:
+            - nuget://IronPython.StdLib/3.4.2
             - alias://testing
             - alias://ninject
             - alias://yaml

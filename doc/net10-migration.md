@@ -72,9 +72,22 @@ not turn Bari into a `dotnet tool` package.
 
 ## Compatibility changes
 
-- **Python 3:** convert `print x` to `print(x)`, old exception syntax, `xrange`,
-  `iteritems`, and any dependency on Python 2 integer division or comprehension
-  variable leakage. The checked-in scripts have been migrated. IronPython
+- **Python 3 with legacy script compatibility:** Bari adapts common Python 2
+  constructs in memory before compiling project build scripts and postprocessors.
+  This covers `print` statements (including redirected print), old exception syntax,
+  dictionary iterator methods, `xrange`, long literals and standard-library module
+  renames. Truncated hex/unicode escapes in ordinary Windows path strings are
+  preserved as literal backslashes. Comments and raw strings are left intact.
+  Already-valid Python 3 `print()` calls, dictionary views, range objects and valid
+  Unicode escapes retain their behavior. A script-local `open` adapter supports
+  legacy XML byte writes to text files and round-trips undecodable legacy file
+  bytes; binary mode and explicit encodings retain Python 3 behavior. Source files
+  are never rewritten and a runtime exception never causes a second execution.
+  The translator uses the bundled standard library's `lib2to3`, with grammar and
+  translated-source caches held in memory; the installation need not be writable.
+  This is compatibility for build scripts, not a complete Python 2 interpreter:
+  integer division, comprehension variable leakage, arbitrary imported Python 2
+  modules and other Python 2-only semantics are not emulated. IronPython
   implements Python 3.4 semantics, so scripts should avoid newer Python syntax.
   Keeping IronPython 2.7.12 failed even when importing `json` on .NET 10; see the
   [upstream runtime issue](https://github.com/IronLanguages/ironpython2/issues/848).
@@ -105,6 +118,13 @@ The runtime smoke test also passed, including its separate test assembly,
 Python 3 standard-library imports, all four checked-in Python scripts, and
 Mercurial revision substitution. NuGet's transitive vulnerability audit reported
 no vulnerable packages in the 19 projects of the full distribution.
+
+The subsequent script-compatibility change passed 334 unit tests, including
+legacy and modern print syntax, dictionary iterators/views, Windows string
+escapes, XML byte writes, non-UTF8 file round-trips, and single execution on
+failure. All 32 original worksuite Python scripts compile through this layer
+without source edits. The original worksuite's `debug-x64` `sp-all` build also
+completed successfully with its unchanged scripts.
 
 The legacy `single-cs-exe` fixture built successfully. Its old `v4.5-client`
 target uses a GAC fallback on this machine because that reference pack is absent;

@@ -6,9 +6,6 @@ using Bari.Core.Generic;
 using Bari.Core.Model;
 using Bari.Core.UI;
 using Bari.Plugins.PythonScripts.Exceptions;
-using IronPython.Compiler;
-using IronPython.Runtime;
-using Microsoft.Scripting;
 using Microsoft.Scripting.Hosting;
 
 namespace Bari.Plugins.PythonScripts.Scripting
@@ -73,14 +70,9 @@ namespace Bari.Plugins.PythonScripts.Scripting
                     scope.SetVariable("targetRoot", localTargetRoot.AbsolutePath);
                     scope.SetVariable("targetDir", localTargetDir.AbsolutePath);
 
-                    var pco = (PythonCompilerOptions)engine.GetCompilerOptions();
-                    pco.Module |= ModuleOptions.Optimized;
-
                     try
                     {
-                        var script = engine.CreateScriptSourceFromString(buildScript.Source, SourceCodeKind.File);
-                        script.Compile(pco);
-                        script.Execute(scope);
+                        PythonScriptCompatibility.Execute(engine, scope, buildScript.Source, buildScript.Name);
 
                         var results = new HashSet<TargetRelativePath>(
                             scope.GetVariable<IList<object>>("results")

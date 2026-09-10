@@ -1,11 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Bari.Core.Build;
 using Bari.Core.Generic;
 using Bari.Core.Model;
-using IronPython.Hosting;
 using Microsoft.Scripting.Hosting;
 
 namespace Bari.Plugins.PythonScripts.Scripting
@@ -32,14 +30,7 @@ namespace Bari.Plugins.PythonScripts.Scripting
 
         protected ScriptEngine CreateEngine()
         {
-            var engine = Python.CreateEngine();
-
-            var libRoot = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "lib");
-            log.DebugFormat("Python lib root is {0}", libRoot);
-
-            engine.SetSearchPaths(new[] { libRoot });
-
-            return engine;
+            return PythonScriptCompatibility.CreateEngine();
         }
 
         protected void AddGetToolToScope(ScriptScope scope, Project project = null)
