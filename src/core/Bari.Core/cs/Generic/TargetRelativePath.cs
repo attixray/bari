@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Monads;
 
 namespace Bari.Core.Generic
 {
@@ -99,7 +98,7 @@ namespace Bari.Core.Generic
         /// <filterpriority>2</filterpriority>
         public override int GetHashCode()
         {
-            return relativeRoot.With(p => p.GetHashCode()) ^ relativePath.With(p => p.GetHashCode());
+            return (relativeRoot?.GetHashCode() ?? 0) ^ (relativePath?.GetHashCode() ?? 0);
         }
 
 

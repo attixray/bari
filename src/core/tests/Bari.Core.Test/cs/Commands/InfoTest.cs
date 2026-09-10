@@ -76,11 +76,13 @@ namespace Bari.Core.Test.Commands
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidCommandParameterException))]
         public void CallingWithAnyParametersThrowsException()
         {
-            var cmd = kernel.Get<ICommand>("info");
-            cmd.Run(kernel.Get<Suite>(), new[] { "anything" });
+            Assert.Throws<InvalidCommandParameterException>(() =>
+            {
+                var cmd = kernel.Get<ICommand>("info");
+                cmd.Run(kernel.Get<Suite>(), new[] { "anything" });
+            });
         }
 
         [Test]

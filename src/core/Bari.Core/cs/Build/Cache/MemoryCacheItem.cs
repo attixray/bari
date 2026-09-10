@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Monads;
 using System.Threading;
 using Bari.Core.Generic;
 
@@ -101,7 +100,7 @@ namespace Bari.Core.Build.Cache
             rwlock.EnterReadLock();
             try
             {
-                return fingerprint.With(fp => fp.Equals(otherFingerprint));
+                return fingerprint != null && fingerprint.Equals(otherFingerprint);
             }
             finally
             {

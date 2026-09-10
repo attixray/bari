@@ -6,7 +6,6 @@ using Bari.Core.Generic;
 using Bari.Core.Model;
 using Bari.Core.UI;
 using Bari.Plugins.PythonScripts.Exceptions;
-using Castle.Core.Internal;
 using IronPython.Compiler;
 using IronPython.Runtime;
 using Microsoft.Scripting;
@@ -88,11 +87,11 @@ namespace Bari.Plugins.PythonScripts.Scripting
                                 .Cast<string>()
                                 .Select(t => GetTargetRelativePath(targetDir, t)));
 
-                        results.ForEach(r =>
+                        foreach (var r in results)
                         {
                             localTargetRoot.InvalidateCacheFileData(r);
                             localTargetDir.InvalidateCacheFileData(r);
-                        });
+                        }
 
                         return results;
                     }

@@ -202,28 +202,32 @@ third:  3
         }
 
         [Test]
-        [ExpectedException(typeof (InvalidSpecificationException))]
         public void GetNonExistingScalarValue()
         {
-            var doc = Load(@"---
-first:  1
-second: 2
-third:  3
-");
-            parser.GetScalarValue(doc.RootNode, "fifth");
+            Assert.Throws<InvalidSpecificationException>(() =>
+            {
+                var doc = Load(@"---
+    first:  1
+    second: 2
+    third:  3
+    ");
+                parser.GetScalarValue(doc.RootNode, "fifth");
+            });
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidSpecificationException))]
         public void GetScalarValueConditionalNoMatch()
         {
-            var doc = Load(@"---
-first:  1
-when X:
-  second: 2
-third:  3
-");
-            parser.GetScalarValue(doc.RootNode, "second");
+            Assert.Throws<InvalidSpecificationException>(() =>
+            {
+                var doc = Load(@"---
+    first:  1
+    when X:
+      second: 2
+    third:  3
+    ");
+                parser.GetScalarValue(doc.RootNode, "second");
+            });
         }
 
         [Test]

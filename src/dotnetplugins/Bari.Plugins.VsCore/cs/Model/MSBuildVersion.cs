@@ -10,6 +10,7 @@
         VS2019,
         VS2022,
         VS2026,
-        Default
+        Default,
+        Dotnet
     }
 }

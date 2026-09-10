@@ -695,20 +695,22 @@ goals:
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidGoalException))]
         public void ExceptionThrownIfTargetGoalIsNotInTheGoalList()
         {
-            const string yaml = @"---                   
-suite: Test suite
+            Assert.Throws<InvalidGoalException>(() =>
+            {
+                const string yaml = @"---
+    suite: Test suite
 
-goals:
-  - a
-  - b
-  - c
-";
-            parameters.SetupGet(p => p.Goal).Returns("X");
-            var loader = kernel.Get<InMemoryYamlModelLoader>();
-            loader.Load(yaml);
+    goals:
+      - a
+      - b
+      - c
+    ";
+                parameters.SetupGet(p => p.Goal).Returns("X");
+                var loader = kernel.Get<InMemoryYamlModelLoader>();
+                loader.Load(yaml);
+            });
         }
 
         [Test]
@@ -766,16 +768,18 @@ default-goal: test-goal
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidGoalException))]
         public void DefaultGoalIsUnknown()
         {
-            const string yaml = @"---                   
-suite: Test suite
-default-goal: test-goal
-";
-            parameters.SetupGet(p => p.Goal).Returns((string)null);
-            var loader = kernel.Get<InMemoryYamlModelLoader>();
-            loader.Load(yaml);
+            Assert.Throws<InvalidGoalException>(() =>
+            {
+                const string yaml = @"---
+    suite: Test suite
+    default-goal: test-goal
+    ";
+                parameters.SetupGet(p => p.Goal).Returns((string)null);
+                var loader = kernel.Get<InMemoryYamlModelLoader>();
+                loader.Load(yaml);
+            });
         }
 
         [Test]

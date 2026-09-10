@@ -123,7 +123,7 @@ namespace Bari.Core.Build.Cache
 
                             var buf1 = memStream.ToArray();
                             var buf2 = new byte[depsStream.Length];
-                            depsStream.Read(buf2, 0, (int) depsStream.Length);
+                            depsStream.ReadExactly(buf2);
 
                             for (int i = 0; i < buf1.Length; i++)
                                 if (buf1[i] != buf2[i])

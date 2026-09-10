@@ -1,103 +1,85 @@
 ---
 suite:      bari
 version:    $GIT_TAG.$GIT_REVNO
-contracts:  enabled
+contracts:  disabled
+copyright: Copyright © Daniel Vigovszky, 2012
+
+csharp:
+    target-framework: v10.0
+    self-contained: false
+
+nuget:
+    package-reference: true
+
+msbuild:
+    when bootstrap:
+        version: Default
+    when not bootstrap:
+        version: Dotnet
+    restore: true
 
 test:
   enabled-runners:
-    - nunit
+    - dotnet
 
 goals:
     - name: debug
     - name: release
-    - name: debug-mono
-      incorporates:
-          - debug
-          - mono
-    - name: release-mono
+    - name: bootstrap
       incorporates:
           - release
-          - mono
 
 fs-repositories:
     - lib/%NAME/%FILENAME.%EXT
 
 aliases:
-    common:
-        - gac://Microsoft.CSharp
-        - gac://System
-        - gac://System.Core
-        - gac://System.Data
-        - gac://System.Data.DataSetExtensions
-        - gac://System.Xml
-        - gac://System.Xml.Linq   
     yaml:
-        - fsrepo://yamldotnet/YamlDotNet.Core.dll # nuget://YamlDotNet.Core/2.2.0      
-        - fsrepo://yamldotnet/YamlDotNet.RepresentationModel.dll # nuget://YamlDotNet.RepresentationModel/2.2.0
-    monads:
-        - fsrepo://monads/Monads.dll # nuget://Monads/1.1.5
+        - nuget://YamlDotNet/18.1.0
     ninject:
-        - nuget://Castle.Core/3.0.0.4001
-        - nuget://Ninject.Extensions.Factory/3.0.1
-        - when not mono:
-            - nuget://Ninject/3.0.1.10
-        - when mono:
-            - fsrepo://ninject-mono/Ninject.dll
+        - nuget://Castle.Core/5.2.1
+        - nuget://Ninject.Extensions.Factory/3.3.3
+        - nuget://Ninject/3.3.6
     testing:
-        - nuget://FluentAssertions/2.2.0
-        - nuget://Moq/4.2.1510.2205
-        - nuget://NUnit/2.6.4
+        - nuget://FluentAssertions/7.2.0
+        - nuget://Moq/4.20.72
+        - nuget://NUnit/4.6.1
+        - nuget://NUnit3TestAdapter/6.3.0
+        - nuget://Microsoft.NET.Test.Sdk/18.10.0
     logging:
-        - nuget://log4net/2.0.3
+        - nuget://log4net/3.4.0
 
 modules:
     - name: core
       projects:
         - name: Bari.Core
           references:
-            - alias://common
             - alias://ninject
-            - alias://monads
             - alias://logging
             - alias://yaml
-            - nuget://DotNetZip/1.10.0
-            - nuget://QuickGraph
-            - nuget://Nuget.Core/1.5.20902.9026
-            - nuget://NuSelfUpdate/0.1.1.16794
+            - nuget://QuikGraph/2.5.0
           csharp:
-            when mono:
-              defines:
-                - MONO
-                - when debug:
-                  - DEBUG
-            when not mono:
-              defines:
+            defines:
                 - when debug:
                   - DEBUG
 
         - name: bari
           type: executable
           references:
-            - gac://System
             - alias://logging
             - alias://ninject
-            - nuget://QuickGraph
+            - nuget://QuikGraph/2.5.0
             - module://Bari.Core
           csharp:
             root-namespace: Bari.Console
       tests:
         - name: Bari.Core.Test
           references:
-            - alias://common
             - alias://ninject
             - alias://testing
             - alias://yaml
             - module://Bari.Core
         - name: bari.Test
           references:
-            - gac://System
-            - gac://System.Xml
-            - gac://System.Xml.Linq
             - alias://logging
             - alias://ninject
             - alias://testing
@@ -109,18 +91,14 @@ modules:
       projects:
         - name: Bari.Plugins.VsCore
           references:
-            - gac://System
-            - gac://System.Xml
             - alias://logging
             - alias://ninject
             - alias://yaml
-            - nuget://QuickGraph
-            - nuget://Microsoft.VisualStudio.Setup.Configuration.Interop/1.16.30
-            - nuget://Microsoft.Build.Utilities.Core/15.5.180
+            - nuget://QuikGraph/2.5.0
+            - nuget://Microsoft.VisualStudio.Setup.Configuration.Interop/3.14.2075
             - suite://core/Bari.Core
         - name: Bari.Plugins.Csharp
           references:
-            - alias://common
             - alias://logging
             - alias://ninject
             - alias://yaml
@@ -128,8 +106,6 @@ modules:
             - suite://core/Bari.Core
         - name: Bari.Plugins.Fsharp
           references:
-            - gac://System
-            - gac://System.Xml
             - alias://logging
             - alias://ninject
             - alias://yaml
@@ -137,8 +113,6 @@ modules:
             - module://Bari.Plugins.VsCore
         - name: Bari.Plugins.VCpp
           references:
-            - gac://System
-            - gac://System.Xml
             - alias://logging
             - alias://ninject
             - alias://yaml
@@ -146,7 +120,6 @@ modules:
             - module://Bari.Plugins.VsCore
         - name: Bari.Plugins.Nuget
           references:
-            - alias://common
             - alias://logging
             - alias://ninject
             - alias://yaml
@@ -155,37 +128,29 @@ modules:
             - module://Bari.Plugins.Csharp
         - name: Bari.Plugins.FSRepository
           references:
-            - gac://Microsoft.CSharp
-            - gac://System
-            - gac://System.Core
             - alias://logging
             - alias://ninject
-            - alias://monads
             - alias://yaml
             - suite://core/Bari.Core
         - name: Bari.Plugins.Gallio
           references:
-            - alias://common
             - alias://logging
             - alias://ninject
             - suite://core/Bari.Core
             - suite://dotnetplugins/Bari.Plugins.Nuget
         - name: Bari.Plugins.NUnit
           references:
-            - alias://common
             - alias://logging
             - alias://ninject
             - suite://core/Bari.Core
             - suite://dotnetplugins/Bari.Plugins.Nuget
         - name: Bari.Plugins.dotnet
           references:
-            - alias://common
             - alias://logging
             - alias://ninject
             - suite://core/Bari.Core
         - name: Bari.Plugins.CodeContracts
           references:
-            - alias://common
             - alias://logging
             - alias://ninject
             - alias://yaml
@@ -195,7 +160,6 @@ modules:
       tests:
         - name: Bari.Plugins.Csharp.Test
           references:
-            - alias://common
             - alias://testing
             - alias://ninject
             - alias://yaml
@@ -205,7 +169,6 @@ modules:
             - module://Bari.Plugins.VsCore
         - name: Bari.Plugins.VCpp.Test
           references:
-            - alias://common
             - alias://testing
             - alias://ninject
             - alias://yaml
@@ -215,7 +178,6 @@ modules:
             - module://Bari.Plugins.VsCore
         - name: Bari.Plugins.FSRepository.Test
           references:
-            - alias://common
             - alias://testing
             - alias://ninject
             - alias://yaml
@@ -226,17 +188,16 @@ modules:
       projects:
         - name: Bari.Plugins.PythonScripts
           references:
-            - gac://System
-            - gac://System.Xml
-            - nuget://IronPython/2.7.5
-            - { uri: 'nuget://IronPython.StdLib/2.7.5', type: Runtime }
+            - nuget://IronPython/3.4.2
+            - nuget://DynamicLanguageRuntime/1.3.5
+            - nuget://System.Drawing.Common/10.0.11
+            - nuget://IronPython.StdLib/3.4.2
             - alias://logging
             - alias://ninject
             - suite://core/Bari.Core
       tests:
         - name: Bari.Plugins.PythonScripts.Test
           references:
-            - alias://common
             - alias://testing
             - alias://ninject
             - alias://yaml
@@ -248,17 +209,15 @@ modules:
       projects:
         - name: Bari.Plugins.AddonSupport
           references:
-            - gac://System
             - alias://logging
             - alias://ninject
             - alias://yaml
             - suite://core/Bari.Core
             - suite://dotnetplugins/Bari.Plugins.VsCore
-            - nuget://Newtonsoft.Json/8.0.3
+            - nuget://Newtonsoft.Json/13.0.4
       tests:
         - name: Bari.Plugins.AddonSupport.Test
           references:
-            - alias://common
             - alias://testing
             - alias://ninject
             - alias://yaml
@@ -270,7 +229,6 @@ modules:
       projects:
         - name: Bari.Plugins.InnoSetup
           references:
-            - gac://System
             - alias://logging
             - alias://ninject
             - alias://yaml
@@ -280,23 +238,19 @@ modules:
       projects:
         - name: Bari.Plugins.Vcs.Core
           references:
-            - gac://System
             - alias://logging
             - alias://ninject
             - suite://core/Bari.Core
 
         - name: Bari.Plugins.Vcs.Hg
           references:
-            - gac://System
             - alias://logging
             - alias://ninject
-            - nuget://Mercurial.Net
             - module://Bari.Plugins.Vcs.Core
             - suite://core/Bari.Core
 
         - name: Bari.Plugins.Vcs.Git
           references:
-            - gac://System
             - alias://logging
             - alias://ninject
             - module://Bari.Plugins.Vcs.Core
@@ -306,16 +260,13 @@ modules:
       projects:
         - name: systests
           type: executable
-          references:
-            - gac://System
-          
+
     - name: tools
       projects:
         - name: Bari.Plugins.Deps
           references:
-            - gac://System
             - alias://logging
-            - nuget://QuickGraph
+            - nuget://QuikGraph/2.5.0
             - alias://ninject
             - suite://core/Bari.Core
 
@@ -332,12 +283,8 @@ products:
       packager:
         type: nuget
         param:
-          when not mono:
-            id: bari
-            description: Bari is an advanced build manager for .NET
-          when mono:
-            id: bari-mono
-            description: Bari is an advanced build manager for .NET (Mono version)
+          id: bari
+          description: Bari is an advanced build manager for .NET
           author: Daniel Vigovszky
           project-url: http://github.com/vigoo/bari
           license-url: http://www.apache.org/licenses/LICENSE-2.0

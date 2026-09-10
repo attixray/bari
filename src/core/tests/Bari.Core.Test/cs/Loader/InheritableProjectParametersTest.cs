@@ -1,7 +1,5 @@
 using Bari.Core.Model;
 using Bari.Core.Model.Parameters;
-using Bari.Core.Model;
-using Bari.Core.Model.Parameters;
 using System;
 using FluentAssertions;
 using NUnit.Framework;

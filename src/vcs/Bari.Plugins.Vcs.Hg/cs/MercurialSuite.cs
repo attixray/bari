@@ -1,16 +1,15 @@
-﻿using System.Globalization;
+﻿using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
-using System.Linq;
 using Bari.Core.Generic;
-using Mercurial;
-using System;
 
 namespace Bari.Plugins.Vcs.Hg
 {
     public class MercurialSuite
     {
-        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(typeof (MercurialSuite));
-
+        private static readonly log4net.ILog log = log4net.LogManager.GetLogger(typeof(MercurialSuite));
         private readonly IFileSystemDirectory suiteRoot;
         private readonly IEnvironmentVariableContext environmentVariableContext;
 
@@ -24,30 +23,24 @@ namespace Bari.Plugins.Vcs.Hg
         {
             get
             {
+                var localRoot = suiteRoot as LocalFileSystemDirectory;
+                if (localRoot == null || !Directory.Exists(Path.Combine(localRoot.AbsolutePath, ".hg")))
+                    return false;
+
                 try
                 {
-                    var localRoot = suiteRoot as LocalFileSystemDirectory;
-                    // Do not initialize the Mercurial client for non-Mercurial suites.
-                    if (localRoot != null && Directory.Exists(Path.Combine(localRoot.AbsolutePath, ".hg")))
-                    {
-                        if (Client.CouldLocateClient)
-                        {
-                            log.InfoFormat("Mercurial support initialized, client version {0}", Client.GetVersion());
-                            return true;
-                        }
-                    }
+                    RunHg(localRoot.AbsolutePath, "--version");
+                    log.Info("Mercurial support initialized");
+                    return true;
+                }
+                catch (Win32Exception ex)
+                {
+                    log.WarnFormat("Could not start Mercurial: {0}", ex.Message);
                 }
                 catch (InvalidOperationException ex)
                 {
-                    log.WarnFormat("Could not initialize Mercurial support: {0}", ex.Message);
+                    log.WarnFormat("Could not initialize Mercurial: {0}", ex.Message);
                 }
-                catch (ArgumentException ex)
-                {
-                    // Mercurial.Net copies the process environment into a case-insensitive
-                    // dictionary, which rejects duplicate Windows keys such as Path/PATH.
-                    log.WarnFormat("Could not initialize Mercurial support: {0}", ex.Message);
-                }
-
                 return false;
             }
         }
@@ -55,14 +48,38 @@ namespace Bari.Plugins.Vcs.Hg
         public void AddEnvironmentVariables()
         {
             var localRoot = suiteRoot as LocalFileSystemDirectory;
-            if (localRoot != null)
+            if (localRoot == null)
+                return;
+
+            var revision = RunHg(localRoot.AbsolutePath, "log", "-r", ".", "--template", "{rev}").Trim();
+            // The null revision is -1 for an empty repository.
+            int.Parse(revision, CultureInfo.InvariantCulture);
+            environmentVariableContext.Define("HG_REVNO", revision);
+        }
+
+        private static string RunHg(string root, params string[] arguments)
+        {
+            var startInfo = new ProcessStartInfo("hg")
             {
-                var logCommand = new LogCommand().WithRevision(RevSpec.WorkingDirectoryParent);
-                Client.Execute(localRoot.AbsolutePath, logCommand);
-                var changeSet = logCommand.Result.First();
-                string revNo = changeSet.RevisionNumber.ToString(CultureInfo.InvariantCulture);
-                log.DebugFormat("Mercurial current revision number is {0}", revNo);
-                environmentVariableContext.Define("HG_REVNO", revNo);
+                WorkingDirectory = root,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            // Machine-readable output without local aliases, defaults or translated messages.
+            startInfo.Environment["HGPLAIN"] = "1";
+            foreach (var argument in arguments)
+                startInfo.ArgumentList.Add(argument);
+
+            using (var process = Process.Start(startInfo))
+            {
+                var output = process.StandardOutput.ReadToEndAsync();
+                var error = process.StandardError.ReadToEndAsync();
+                process.WaitForExit();
+                if (process.ExitCode != 0)
+                    throw new InvalidOperationException("Mercurial failed: " + error.GetAwaiter().GetResult());
+                return output.GetAwaiter().GetResult();
             }
         }
     }

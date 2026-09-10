@@ -5,9 +5,9 @@ using System.Linq;
 using Bari.Core.Build.Cache;
 using Bari.Core.Generic;
 using Bari.Core.Generic.Graph;
-using QuickGraph;
-using QuickGraph.Algorithms;
-using QuickGraph.Algorithms.Search;
+using QuikGraph;
+using QuikGraph.Algorithms;
+using QuikGraph.Algorithms.Search;
 using Bari.Core.Build.Statistics;
 using Bari.Core.UI;
 
@@ -95,7 +95,7 @@ namespace Bari.Core.Build
             if (!cancel)
             {
                 var graph = builders.ToAdjacencyGraph<IBuilder, EquatableEdge<IBuilder>>();
-                graph.RemoveEdgeIf(edge => edge.IsSelfEdge<IBuilder, EquatableEdge<IBuilder>>());
+                graph.RemoveEdgeIf(edge => edge.IsSelfEdge());
                 
                 if (rootBuilder != null)
                     RemoveIrrelevantBranches(graph, rootBuilder);
@@ -216,7 +216,7 @@ namespace Bari.Core.Build
                     using (var stepStream = builderGraphStreamFactory("step" + i++))
                     {
                         var graph = builders.ToAdjacencyGraph<IBuilder, EquatableEdge<IBuilder>>();
-                        graph.RemoveEdgeIf(edge => edge.IsSelfEdge<IBuilder, EquatableEdge<IBuilder>>());
+                        graph.RemoveEdgeIf(edge => edge.IsSelfEdge());
                         DumpGraph(stepStream, graph);
                     }
                 }
@@ -259,14 +259,14 @@ namespace Bari.Core.Build
         public void Dump(Func<string, Stream> builderGraphStreamFactory, IBuilder rootBuilder)
         {
             var originalGraph = builders.ToAdjacencyGraph<IBuilder, EquatableEdge<IBuilder>>();
-            originalGraph.RemoveEdgeIf(edge => edge.IsSelfEdge<IBuilder, EquatableEdge<IBuilder>>());
+            originalGraph.RemoveEdgeIf(edge => edge.IsSelfEdge());
             using (var originalStream = builderGraphStreamFactory("original"))
                 DumpGraph(originalStream, originalGraph);
 
             RunTransformations(builderGraphStreamFactory);
 
             var graph = builders.ToAdjacencyGraph<IBuilder, EquatableEdge<IBuilder>>();
-            graph.RemoveEdgeIf(edge => edge.IsSelfEdge<IBuilder, EquatableEdge<IBuilder>>());
+            graph.RemoveEdgeIf(edge => edge.IsSelfEdge());
 
             if (rootBuilder != null)
                 RemoveIrrelevantBranches(graph, rootBuilder);

@@ -5,7 +5,7 @@ using Bari.Core.Exceptions;
 using Bari.Core.Generic;
 using Bari.Core.Generic.Graph;
 using Bari.Core.Model;
-using QuickGraph;
+using QuikGraph;
 
 namespace Bari.Plugins.Deps.Commands
 {

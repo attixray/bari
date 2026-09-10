@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Monads;
 using Bari.Core.Exceptions;
 using Bari.Core.Generic;
 
@@ -33,7 +32,7 @@ namespace Bari.Plugins.FSRepository.Model
                 repositoryName = null;
                 dependencyName = host;
                 fileName = Path.GetFileNameWithoutExtension(pathParts[0]);
-                extension = Path.GetExtension(pathParts[0]).With(ex => ex.TrimStart('.'));
+                extension = Path.GetExtension(pathParts[0])?.TrimStart('.');
                 version = null;
             }
             else if (pathParts.Length == 2)
@@ -41,7 +40,7 @@ namespace Bari.Plugins.FSRepository.Model
                 repositoryName = null;
                 dependencyName = host;
                 fileName = Path.GetFileNameWithoutExtension(pathParts[1]);
-                extension = Path.GetExtension(pathParts[1]).With(ex => ex.TrimStart('.'));
+                extension = Path.GetExtension(pathParts[1])?.TrimStart('.');
                 version = pathParts[0];
             }
             else if (pathParts.Length == 3)
@@ -49,7 +48,7 @@ namespace Bari.Plugins.FSRepository.Model
                 repositoryName = host;
                 dependencyName = pathParts[0];
                 fileName = Path.GetFileNameWithoutExtension(pathParts[2]);
-                extension = Path.GetExtension(pathParts[2]).With(ex => ex.TrimStart('.')); 
+                extension = Path.GetExtension(pathParts[2])?.TrimStart('.');
                 version = pathParts[1];
             }
             else

@@ -44,7 +44,7 @@ namespace Bari.Core
 
         public void Load(string path)
         {
-            Kernel.Root.Load(new[] {path});
+            Kernel.Root.Load(new[] {PluginAssemblyLoader.Load(path)});
         }
 
         public void Load(INinjectModule module)

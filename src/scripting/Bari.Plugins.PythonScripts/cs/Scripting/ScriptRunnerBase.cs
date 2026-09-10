@@ -34,7 +34,7 @@ namespace Bari.Plugins.PythonScripts.Scripting
         {
             var engine = Python.CreateEngine();
 
-            var libRoot = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Lib");
+            var libRoot = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "lib");
             log.DebugFormat("Python lib root is {0}", libRoot);
 
             engine.SetSearchPaths(new[] { libRoot });

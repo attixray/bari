@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using QuickGraph;
+using QuikGraph;
 
 namespace Bari.Core.Generic.Graph
 {

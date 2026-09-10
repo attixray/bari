@@ -49,6 +49,7 @@ systest/cpp-version/cache
 systest/custom-plugin-test/cache
 systest/hg-revno-test/cache
 systest/multi-solution-test2/cache
+systest/net10-runtime/cache
 
 
 # Systest generated files

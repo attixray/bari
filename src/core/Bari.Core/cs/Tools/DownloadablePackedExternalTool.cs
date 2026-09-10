@@ -1,8 +1,7 @@
 ﻿using System;
 using System.IO;
-using System.Net;
 using Bari.Core.UI;
-using Ionic.Zip;
+using System.IO.Compression;
 
 namespace Bari.Core.Tools
 {
@@ -36,17 +35,18 @@ namespace Bari.Core.Tools
         {
             var tempZip = Path.GetTempFileName();
 
-            using (var client = new WebClient())
+            try
             {
-                client.DownloadFile(Url, tempZip);
+                DownloadFile(Url, tempZip);
 
                 log.DebugFormat("Extracting downloaded archive to {0}", target);
-                using (var zip = new ZipFile(tempZip))
-                {
-                    zip.ExtractAll(target);
-                }
+                ZipFile.ExtractToDirectory(tempZip, target);
 
                 log.DebugFormat("Extracting completed");
+            }
+            finally
+            {
+                File.Delete(tempZip);
             }
         }
     }

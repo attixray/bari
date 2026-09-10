@@ -27,7 +27,9 @@ namespace Bari.Plugins.AddonSupport.Model
         {
             get
             {
-                return new Uri(Assembly.GetEntryAssembly().CodeBase).LocalPath;
+                var assemblyPath = Assembly.GetEntryAssembly().Location;
+                var appHost = Path.ChangeExtension(assemblyPath, OperatingSystem.IsWindows() ? ".exe" : null);
+                return File.Exists(appHost) ? appHost : assemblyPath;
             }
         }
 

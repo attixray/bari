@@ -57,19 +57,23 @@ namespace Bari.Core.Test.Commands
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidCommandParameterException))]
         public void HelpCalledWithMoreThanOneParametersThrowException()
         {
-            var cmd = kernel.Get<ICommand>("help");
-            cmd.Run(kernel.Get<Suite>(), new[] {"test1", "test2"});
+            Assert.Throws<InvalidCommandParameterException>(() =>
+            {
+                var cmd = kernel.Get<ICommand>("help");
+                cmd.Run(kernel.Get<Suite>(), new[] {"test1", "test2"});
+            });
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidCommandParameterException))]
         public void UnknownCommandNameInParameterThrowsException()
         {
-            var cmd = kernel.Get<ICommand>("help");
-            cmd.Run(kernel.Get<Suite>(), new[] { "non-existing-command" });
+            Assert.Throws<InvalidCommandParameterException>(() =>
+            {
+                var cmd = kernel.Get<ICommand>("help");
+                cmd.Run(kernel.Get<Suite>(), new[] { "non-existing-command" });
+            });
         }
 
         [Test]

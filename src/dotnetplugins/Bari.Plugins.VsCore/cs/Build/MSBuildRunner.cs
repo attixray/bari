@@ -80,13 +80,13 @@ namespace Bari.Plugins.VsCore.Build
 
         public override void AddPrerequisite(IBuilder target)
         {
-            if (target != slnBuilder)
+            if (!ReferenceEquals(target, slnBuilder))
                 throw new Exception(String.Format("Unexpected override of msbuild runner's source from {0} to {1}", slnBuilder, target));
         }
 
         public override void RemovePrerequisite(IBuilder target)
         {
-            if (target == slnBuilder)
+            if (ReferenceEquals(target, slnBuilder))
                 throw new Exception(String.Format("Unexpected removal of msbuild runner's source: {0}", slnBuilder));
         }
 
@@ -109,9 +109,7 @@ namespace Bari.Plugins.VsCore.Build
                 var moduleTargetDir = targetRoot.GetChildDirectory(targetDir);
                 if (moduleTargetDir != null)
                 {
-                    moduleTargetDir.InvalidateCacheFileData();
-
-                    foreach (var fileName in moduleTargetDir.Files)
+                    foreach (var fileName in EnumerateOutputFiles(moduleTargetDir, String.Empty))
                     {
                         var relativePath = new TargetRelativePath(targetDir, fileName);
                         outputs.Add(relativePath);
@@ -123,6 +121,19 @@ namespace Bari.Plugins.VsCore.Build
                 outputs.ExceptWith(context.GetAllResultsIn(new TargetRelativePath(targetDir, String.Empty)));
 
             return outputs;
+        }
+
+        private static IEnumerable<string> EnumerateOutputFiles(IFileSystemDirectory directory, string relativePath)
+        {
+            directory.InvalidateCacheFileData();
+            foreach (var fileName in directory.Files)
+                yield return Path.Combine(relativePath, fileName);
+
+            // SDK packages can deploy content and native assets below Lib/, runtimes/,
+            // or culture directories. They must survive product merging and cache restore.
+            foreach (var child in directory.ChildDirectories)
+                foreach (var fileName in EnumerateOutputFiles(directory.GetChildDirectory(child), Path.Combine(relativePath, child)))
+                    yield return fileName;
         }
 
         private IEnumerable<TargetRelativePath> GetDependencyResults(IBuildContext context)

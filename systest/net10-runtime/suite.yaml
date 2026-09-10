@@ -1,0 +1,39 @@
+---
+suite: net10 runtime smoke test
+version: 1.0.0
+
+csharp:
+    target-framework: v10.0
+    self-contained: false
+nuget:
+    package-reference: true
+msbuild:
+    version: Dotnet
+    restore: true
+test:
+    enabled-runners:
+        - dotnet
+
+modules:
+    - name: smoke
+      projects:
+        - name: Smoke
+          type: executable
+          references:
+              - module://Message
+              - nuget://Newtonsoft.Json/13.0.4
+        - name: Message
+      tests:
+        - name: Smoke.Test
+          references:
+              - module://Message
+              - nuget://NUnit/4.6.1
+              - nuget://NUnit3TestAdapter/6.3.0
+              - nuget://Microsoft.NET.Test.Sdk/18.10.0
+
+products:
+    - name: main
+      modules:
+          - smoke
+      postprocessors:
+          - verify

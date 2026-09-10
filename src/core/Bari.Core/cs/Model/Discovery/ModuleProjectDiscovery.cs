@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Monads;
 using Bari.Core.Generic;
 
 namespace Bari.Core.Model.Discovery
@@ -32,33 +31,35 @@ namespace Bari.Core.Model.Discovery
         public void ExtendWithDiscoveries(Suite suite)
         {
             var srcDir = suiteRoot.GetChildDirectory("src");
-            srcDir.With(s => s.ChildDirectories.Do(
-                moduleName =>
+            if (srcDir == null)
+                return;
+
+            foreach (var moduleName in srcDir.ChildDirectories)
+            {
+                Module module = suite.GetModule(moduleName);
+
+                var moduleDir = srcDir.GetChildDirectory(moduleName);
+                foreach (var projectName in moduleDir.ChildDirectories)
                 {
-                    Module module = suite.GetModule(moduleName);
-
-                    var moduleDir = srcDir.GetChildDirectory(moduleName);
-                    foreach (var projectName in moduleDir.ChildDirectories)
+                    if (projectName.Equals("tests", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        if (projectName.Equals("tests", StringComparison.InvariantCultureIgnoreCase))
+                        // This is the special subdirectory for test projects
+                        var testsDir = moduleDir.GetChildDirectory(projectName);
+                        foreach (var testProjectName in testsDir.ChildDirectories)
                         {
-                            // This is the special subdirectory for test projects
-                            var testsDir = moduleDir.GetChildDirectory(projectName);
-                            foreach (var testProjectName in testsDir.ChildDirectories)
-                            {
-                                var testProject = module.GetTestProject(testProjectName);
-                                DiscoverProjectSources(testProject, testsDir.GetChildDirectory(testProjectName), suite.SourceSetIgnoreLists);
-                            }
-                        }
-                        else
-                        {
-                            // This is a project directory
-
-                            Project project = module.GetProject(projectName);
-                            DiscoverProjectSources(project, moduleDir.GetChildDirectory(projectName), suite.SourceSetIgnoreLists);
+                            var testProject = module.GetTestProject(testProjectName);
+                            DiscoverProjectSources(testProject, testsDir.GetChildDirectory(testProjectName), suite.SourceSetIgnoreLists);
                         }
                     }
-                }));
+                    else
+                    {
+                        // This is a project directory
+
+                        Project project = module.GetProject(projectName);
+                        DiscoverProjectSources(project, moduleDir.GetChildDirectory(projectName), suite.SourceSetIgnoreLists);
+                    }
+                }
+            }
         }
 
         /// <summary>

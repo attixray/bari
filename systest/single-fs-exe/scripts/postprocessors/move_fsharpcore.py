@@ -6,8 +6,9 @@ fsharp_filename_lower = fsharp_filename.lower()
 
 src = None
 for dirpath, dirnames, filenames in os.walk(targetDir):
-    if fsharp_filename_lower in [fn.lower() for fn in filenames]:
-        src = os.path.join(dirpath, fn)
+    match = next((fn for fn in filenames if fn.lower() == fsharp_filename_lower), None)
+    if match is not None:
+        src = os.path.join(dirpath, match)
         break
 
 if src is not None:

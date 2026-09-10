@@ -1,6 +1,6 @@
 import os
 
-print 'Target dir:' + targetDir
+print('Target dir:' + targetDir)
 
 genExe = get_tool("fsrepo://MessageGenerator/*.*", "MessageGenerator.exe")
 
@@ -10,7 +10,7 @@ if is_mono:
     cmd  = 'mono ' + cmd
 
 
-print cmd
+print(cmd)
 os.system(cmd)
 
 results = ['generated.txt']

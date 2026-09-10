@@ -8,8 +8,6 @@ namespace Bari.Core.Generic
     /// </summary>
     public static class MD5
     {
-        private static readonly MD5CryptoServiceProvider provider = new MD5CryptoServiceProvider();
-
         /// <summary>
         /// Encode a string by returning its MD5 checksum in string format
         /// </summary>
@@ -18,7 +16,7 @@ namespace Bari.Core.Generic
         public static string Encode(string input)
         {
             byte[] raw = Encoding.UTF8.GetBytes(input);
-            byte[] hash = provider.ComputeHash(raw);
+            byte[] hash = System.Security.Cryptography.MD5.HashData(raw);
 
             var sb = new StringBuilder();
             foreach (var b in hash)

@@ -180,7 +180,7 @@ namespace Bari.Core
                 return (string)arguments[0];
             }
 
-            protected override ConstructorArgument[] GetConstructorArguments(System.Reflection.MethodInfo methodInfo, object[] arguments)
+            protected override IConstructorArgument[] GetConstructorArguments(System.Reflection.MethodInfo methodInfo, object[] arguments)
             {
                 return base.GetConstructorArguments(methodInfo, arguments).Skip(1).ToArray();
             }
@@ -206,7 +206,7 @@ namespace Bari.Core
                 return reference.Uri.Scheme;
             }
 
-            protected override ConstructorArgument[] GetConstructorArguments(System.Reflection.MethodInfo methodInfo, object[] arguments)
+            protected override IConstructorArgument[] GetConstructorArguments(System.Reflection.MethodInfo methodInfo, object[] arguments)
             {
                 return base.GetConstructorArguments(methodInfo, arguments).Skip(1).ToArray();
             }

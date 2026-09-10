@@ -17,8 +17,8 @@ using Ninject.Modules;
 using log4net.Core;
 using log4net.Layout;
 using log4net.Repository.Hierarchy;
-using QuickGraph;
-using QuickGraph.Algorithms;
+using QuikGraph;
+using QuikGraph.Algorithms;
 
 namespace Bari.Console
 {
@@ -107,7 +107,7 @@ namespace Bari.Console
 
             foreach (var file in Directory.GetFiles(path, pattern))
             {
-                var assembly = Assembly.LoadFile(file);
+                var assembly = PluginAssemblyLoader.Load(file);
                 var modules = from type in assembly.GetTypes()
                               where type.GetInterfaces().Contains(typeof(INinjectModule))
                               select type;
@@ -143,7 +143,7 @@ namespace Bari.Console
         private static IEnumerable<INinjectModule> GetOrderedModuleList(string path, string pattern)
         {
             var graph = GetModuleGraph(path, pattern).ToAdjacencyGraph<INinjectModule, EquatableEdge<INinjectModule>>();
-            graph.RemoveEdgeIf(edge => edge.IsSelfEdge<INinjectModule, EquatableEdge<INinjectModule>>());
+            graph.RemoveEdgeIf(edge => edge.IsSelfEdge());
             return graph.TopologicalSort();
         }
 

@@ -1,49 +1,26 @@
 name: CI
 on:
   push:
-    branches-ignore:
-    - site-src
-    - gh-pages
+    branches-ignore: [site-src, gh-pages]
   pull_request:
-    branches-ignore:
-    - site-src
-    - gh-pages
+    branches-ignore: [site-src, gh-pages]
 jobs:
   build-test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        target: 
-          - release-mono
-          - release
+    runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
         with:
-          fetch-depth: 0        
-      - name: Installing Mono
-        run: |
-          sudo apt install gnupg ca-certificates curl
-          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-          echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-          sudo apt update
-          sudo apt install mono-devel
-          mono --version
-      - name: Downloading NuGet
-        run: |
-          mkdir -v .bin
-          curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output .bin/nuget.exe
-      - name: Downloading Bari
-        run: |
-          mono .bin/nuget.exe install bari-mono -OutputDirectory .bin
-          mono .bin/bari*/tools/bari.exe info
-      - name: Build
-        run: |
-          mono .bin/bari*/tools/bari.exe -v --target ${{ matrix.target }} rebuild full
-      - name: Pack
-        run: |
-          mono .bin/bari*/tools/bari.exe -v --target ${{ matrix.target }} pack full
-      - name: Test
-        run: |
-          mono .bin/bari*/tools/bari.exe -v --target ${{ matrix.target }} test
+          fetch-depth: 0
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Bootstrap, self-build and test
+        shell: pwsh
+        run: ./bootstrap.ps1 -Test
+      - name: Upload Bari distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: bari-net10
+          path: target/full/

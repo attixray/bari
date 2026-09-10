@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Net;
 using Bari.Core.UI;
 
 namespace Bari.Core.Tools
@@ -33,21 +32,28 @@ namespace Bari.Core.Tools
         /// <param name="target">Target directory</param>
         protected override void DownloadAndDeploy(string target)
         {
-            var tempInstaller = Path.GetTempFileName() + ".exe";
+            var tempInstaller = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".exe");
 
-            using (var client = new WebClient())
+            try
             {
-                client.DownloadFile(Url, tempInstaller);
+                DownloadFile(Url, tempInstaller);
 
                 log.DebugFormat("Installing downloaded package to {0}", target);
 
-                var process = System.Diagnostics.Process.Start(tempInstaller, GetInstallerArguments(target));
-                if (process == null)
-                    throw new InvalidOperationException("Could not start tool installer");
-
-                process.WaitForExit();
+                using (var process = System.Diagnostics.Process.Start(tempInstaller, GetInstallerArguments(target)))
+                {
+                    if (process == null)
+                        throw new InvalidOperationException("Could not start tool installer");
+                    process.WaitForExit();
+                    if (process.ExitCode != 0)
+                        throw new InvalidOperationException("Tool installer failed with exit code " + process.ExitCode);
+                }
 
                 log.DebugFormat("Installation completed");
+            }
+            finally
+            {
+                File.Delete(tempInstaller);
             }
         }
 

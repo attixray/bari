@@ -4,7 +4,7 @@ using System.Linq;
 using Bari.Core.Build;
 using Bari.Core.Build.MergingTag;
 using Bari.Core.Model;
-using QuickGraph;
+using QuikGraph;
 
 
 namespace Bari.Plugins.VsCore.Build
@@ -128,7 +128,7 @@ namespace Bari.Plugins.VsCore.Build
             {
                 builder.RemovePrerequisite(dep);
 
-                var edgesToModify = new HashSet<EquatableEdge<IBuilder>>(graph.Where(edge => edge.Source == builder && edge.Target == dep));
+                var edgesToModify = new HashSet<EquatableEdge<IBuilder>>(graph.Where(edge => edge.Source == builder && ReferenceEquals(edge.Target, dep)));
                 RemoveEdges(graph, edgesToModify);
 
                 foreach (var edge in edgesToModify)

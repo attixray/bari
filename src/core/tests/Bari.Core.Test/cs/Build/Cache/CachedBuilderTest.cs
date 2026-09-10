@@ -66,56 +66,60 @@ namespace Bari.Core.Test.Build.Cache
         }
 
         [Test]
-        [ExpectedException(typeof (BuilderCantRunException))]
         public void ThrowsExceptionIfBuilderCannotRunAndNoCachedResults()
         {
-            // Setting up the test
-            var realBuilder = new Mock<IBuilder>();
-            var realBuilderDeps = new Mock<IDependencies>();
-            var initialFingerprint = new Mock<IDependencyFingerprint>();
-            var buildContext = new Mock<IBuildContext>();
-            var cache = new Mock<IBuildCache>();
-            var targetDir = new TestFileSystemDirectory("target");
+            Assert.Throws<BuilderCantRunException>(() =>
+            {
+                // Setting up the test
+                var realBuilder = new Mock<IBuilder>();
+                var realBuilderDeps = new Mock<IDependencies>();
+                var initialFingerprint = new Mock<IDependencyFingerprint>();
+                var buildContext = new Mock<IBuildContext>();
+                var cache = new Mock<IBuildCache>();
+                var targetDir = new TestFileSystemDirectory("target");
 
-            realBuilderDeps.Setup(dep => dep.Fingerprint).Returns(initialFingerprint.Object);
+                realBuilderDeps.Setup(dep => dep.Fingerprint).Returns(initialFingerprint.Object);
 
-            realBuilder.Setup(b => b.Dependencies).Returns(realBuilderDeps.Object);
-            realBuilder.Setup(b => b.Uid).Returns("");
-            realBuilder.Setup(b => b.BuilderType).Returns(typeof(IBuilder));
-            realBuilder.Setup(b => b.CanRun()).Returns(false);
+                realBuilder.Setup(b => b.Dependencies).Returns(realBuilderDeps.Object);
+                realBuilder.Setup(b => b.Uid).Returns("");
+                realBuilder.Setup(b => b.BuilderType).Returns(typeof(IBuilder));
+                realBuilder.Setup(b => b.CanRun()).Returns(false);
 
-            // Creating the builder
-            var cachedBuilder = new CachedBuilder(realBuilder.Object, cache.Object, targetDir);
+                // Creating the builder
+                var cachedBuilder = new CachedBuilder(realBuilder.Object, cache.Object, targetDir);
 
-            // Running the builder for the first time
-            cachedBuilder.Run(buildContext.Object);
+                // Running the builder for the first time
+                cachedBuilder.Run(buildContext.Object);
+            });
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidOperationException))]
         public void ThrowsExceptionIfBuilderThrowsExceptionAndNoCachedResults()
         {
-            // Setting up the test
-            var realBuilder = new Mock<IBuilder>();
-            var realBuilderDeps = new Mock<IDependencies>();
-            var initialFingerprint = new Mock<IDependencyFingerprint>();
-            var buildContext = new Mock<IBuildContext>();
-            var cache = new Mock<IBuildCache>();
-            var targetDir = new TestFileSystemDirectory("target");
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                // Setting up the test
+                var realBuilder = new Mock<IBuilder>();
+                var realBuilderDeps = new Mock<IDependencies>();
+                var initialFingerprint = new Mock<IDependencyFingerprint>();
+                var buildContext = new Mock<IBuildContext>();
+                var cache = new Mock<IBuildCache>();
+                var targetDir = new TestFileSystemDirectory("target");
 
-            realBuilderDeps.Setup(dep => dep.Fingerprint).Returns(initialFingerprint.Object);
+                realBuilderDeps.Setup(dep => dep.Fingerprint).Returns(initialFingerprint.Object);
 
-            realBuilder.Setup(b => b.Dependencies).Returns(realBuilderDeps.Object);
-            realBuilder.Setup(b => b.Uid).Returns("");
-            realBuilder.Setup(b => b.BuilderType).Returns(typeof(IBuilder));
-            realBuilder.Setup(b => b.CanRun()).Returns(true);
-            realBuilder.Setup(b => b.Run(It.IsAny<IBuildContext>())).Throws<InvalidOperationException>();
+                realBuilder.Setup(b => b.Dependencies).Returns(realBuilderDeps.Object);
+                realBuilder.Setup(b => b.Uid).Returns("");
+                realBuilder.Setup(b => b.BuilderType).Returns(typeof(IBuilder));
+                realBuilder.Setup(b => b.CanRun()).Returns(true);
+                realBuilder.Setup(b => b.Run(It.IsAny<IBuildContext>())).Throws<InvalidOperationException>();
 
-            // Creating the builder
-            var cachedBuilder = new CachedBuilder(realBuilder.Object, cache.Object, targetDir);
+                // Creating the builder
+                var cachedBuilder = new CachedBuilder(realBuilder.Object, cache.Object, targetDir);
 
-            // Running the builder for the first time
-            cachedBuilder.Run(buildContext.Object);
+                // Running the builder for the first time
+                cachedBuilder.Run(buildContext.Object);
+            });
         }
 
         [Test]

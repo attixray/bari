@@ -57,7 +57,7 @@ namespace Bari.Core.Build.Cache
                         using (var stream = targetRoot.ReadBinaryFile(outputPath))
                         {
                             var buf = new byte[stream.Length];
-                            stream.Read(buf, 0, buf.Length);
+                            stream.ReadExactly(buf);
 
                             map.TryAdd(outputPath, buf);
                         }

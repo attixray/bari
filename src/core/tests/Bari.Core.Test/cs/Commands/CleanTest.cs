@@ -60,11 +60,13 @@ namespace Bari.Core.Test.Commands
         }
 
         [Test]
-        [ExpectedException(typeof(InvalidCommandParameterException))]
         public void CalledWithMoreParametersThrowException()
         {
-            var cmd = kernel.Get<ICommand>("clean");
-            cmd.Run(kernel.Get<Suite>(), new[] { "test2", "-test3", "something" });
+            Assert.Throws<InvalidCommandParameterException>(() =>
+            {
+                var cmd = kernel.Get<ICommand>("clean");
+                cmd.Run(kernel.Get<Suite>(), new[] { "test2", "-test3", "something" });
+            });
         }
 
         [Test]

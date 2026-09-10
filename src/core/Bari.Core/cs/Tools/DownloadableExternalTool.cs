@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Net;
+using System.Net.Http;
 using Bari.Core.UI;
 
 namespace Bari.Core.Tools
@@ -11,6 +11,7 @@ namespace Bari.Core.Tools
     public class DownloadableExternalTool: ExternalTool
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(typeof (DownloadableExternalTool));
+        private static readonly HttpClient downloadClient = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 
         private readonly string defaultInstallLocation;
         private readonly string bariInstallLocation;
@@ -104,10 +105,17 @@ namespace Bari.Core.Tools
         /// <param name="target">Target directory</param>
         protected virtual void DownloadAndDeploy(string target)
         {
-            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
-            using (var client = new WebClient())
+            DownloadFile(url, Path.Combine(target, executableName));
+        }
+
+        protected static void DownloadFile(Uri source, string destination)
+        {
+            using (var response = downloadClient.GetAsync(source, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult())
             {
-                client.DownloadFile(url, Path.Combine(target, executableName));
+                response.EnsureSuccessStatusCode();
+                using (var input = response.Content.ReadAsStream())
+                using (var output = File.Create(destination))
+                    input.CopyTo(output);
             }
         }
     }

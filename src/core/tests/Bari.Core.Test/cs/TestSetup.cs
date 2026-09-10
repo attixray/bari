@@ -6,7 +6,7 @@ namespace Bari.Core.Test
     [SetUpFixture]
     public class TestSetup
     {
-        [SetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             Kernel.RegisterCoreBindings();
