@@ -9,6 +9,7 @@ using QuikGraph;
 using QuikGraph.Algorithms;
 using QuikGraph.Algorithms.Search;
 using Bari.Core.Build.Statistics;
+using Bari.Core.Exceptions;
 using Bari.Core.UI;
 
 namespace Bari.Core.Build
@@ -129,7 +130,7 @@ namespace Bari.Core.Build
                 else
                 {
                     log.ErrorFormat("Build graph has cycle");
-                    result.Clear();
+                    throw new BuildGraphCycleException();
                 }
             }
             else
