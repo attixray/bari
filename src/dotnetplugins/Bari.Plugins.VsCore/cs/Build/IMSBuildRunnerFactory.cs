@@ -8,6 +8,6 @@ namespace Bari.Plugins.VsCore.Build
     /// </summary>
     public interface IMSBuildRunnerFactory
     {
-        MSBuildRunner CreateMSBuildRunner(SlnBuilder slnBuilder, TargetRelativePath slnPath, MSBuildVersion version, bool restore);
+        MSBuildRunner CreateMSBuildRunner(SlnBuilder slnBuilder, TargetRelativePath slnPath, MSBuildVersion version, bool restore, bool includeOutputSubdirectories);
     }
 }

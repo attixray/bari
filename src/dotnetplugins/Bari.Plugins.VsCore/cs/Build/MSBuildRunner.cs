@@ -22,6 +22,7 @@ namespace Bari.Plugins.VsCore.Build
         private readonly SlnBuilder slnBuilder;
         private readonly TargetRelativePath slnPath;
         private readonly bool restore;
+        private readonly bool includeOutputSubdirectories;
         private readonly IFileSystemDirectory targetRoot;
         private readonly IMSBuild msbuild;
 
@@ -32,14 +33,16 @@ namespace Bari.Plugins.VsCore.Build
         /// <param name="slnPath">Path of the generated solution file</param>
         /// <param name="version">MSBuild version to use</param>
         /// <param name="restore">Is nuget resotre needed?</param>
+        /// <param name="includeOutputSubdirectories">Whether nested module outputs are exposed as build results</param>
         /// <param name="targetRoot">Target directory</param>
         /// <param name="msbuildFactory">Factory to get the MSBuild implementation to use</param>
-        public MSBuildRunner(SlnBuilder slnBuilder, TargetRelativePath slnPath, MSBuildVersion version, bool restore,
+        public MSBuildRunner(SlnBuilder slnBuilder, TargetRelativePath slnPath, MSBuildVersion version, bool restore, bool includeOutputSubdirectories,
                              [TargetRoot] IFileSystemDirectory targetRoot, IMSBuildFactory msbuildFactory)
         {
             this.slnBuilder = slnBuilder;
             this.slnPath = slnPath;
             this.restore = restore;
+            this.includeOutputSubdirectories = includeOutputSubdirectories;
             this.targetRoot = targetRoot;
             msbuild = msbuildFactory.CreateMSBuild(version);
         }
@@ -70,7 +73,7 @@ namespace Bari.Plugins.VsCore.Build
         /// </summary>
         public override string Uid
         {
-            get { return slnBuilder.Uid; }
+            get { return slnBuilder.Uid + (includeOutputSubdirectories ? "__with-subdirs" : "__root-files"); }
         }
 
         public override IEnumerable<IBuilder> Prerequisites
@@ -109,7 +112,7 @@ namespace Bari.Plugins.VsCore.Build
                 var moduleTargetDir = targetRoot.GetChildDirectory(targetDir);
                 if (moduleTargetDir != null)
                 {
-                    foreach (var fileName in EnumerateOutputFiles(moduleTargetDir, String.Empty))
+                    foreach (var fileName in EnumerateOutputFiles(moduleTargetDir, includeOutputSubdirectories))
                     {
                         var relativePath = new TargetRelativePath(targetDir, fileName);
                         outputs.Add(relativePath);
@@ -123,17 +126,20 @@ namespace Bari.Plugins.VsCore.Build
             return outputs;
         }
 
-        private static IEnumerable<string> EnumerateOutputFiles(IFileSystemDirectory directory, string relativePath)
+        private static IEnumerable<string> EnumerateOutputFiles(IFileSystemDirectory directory, bool includeSubdirectories, string relativePath = "")
         {
             directory.InvalidateCacheFileData();
             foreach (var fileName in directory.Files)
                 yield return Path.Combine(relativePath, fileName);
 
             // SDK packages can deploy content and native assets below Lib/, runtimes/,
-            // or culture directories. They must survive product merging and cache restore.
-            foreach (var child in directory.ChildDirectories)
-                foreach (var fileName in EnumerateOutputFiles(directory.GetChildDirectory(child), Path.Combine(relativePath, child)))
-                    yield return fileName;
+            // or culture directories. Suites which need these in product output can opt in.
+            if (includeSubdirectories)
+            {
+                foreach (var child in directory.ChildDirectories)
+                    foreach (var fileName in EnumerateOutputFiles(directory.GetChildDirectory(child), true, Path.Combine(relativePath, child)))
+                        yield return fileName;
+            }
         }
 
         private IEnumerable<TargetRelativePath> GetDependencyResults(IBuildContext context)

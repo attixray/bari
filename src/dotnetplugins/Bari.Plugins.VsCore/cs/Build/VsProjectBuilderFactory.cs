@@ -137,7 +137,8 @@ namespace Bari.Plugins.VsCore.Build
                 slnBuilder,
                 new TargetRelativePath(String.Empty, slnBuilder.Uid + ".sln"), 
                 msbuildParams.Version,
-                msbuildParams.Restore);
+                msbuildParams.Restore,
+                msbuildParams.IncludeOutputSubdirectories);
             return msbuild;
         }
 

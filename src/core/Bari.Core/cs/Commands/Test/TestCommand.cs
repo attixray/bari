@@ -133,7 +133,10 @@ Example: `bari test --dump`
                     lastBuildTarget = targetStr;
                     var target = targetParser.ParseTarget(targetStr);
 
-                    var allProjects = target.Projects.Concat(target.TestProjects).ToList();
+                    var allProjects = target.Projects
+                        .Concat(target.TestProjects)
+                        .WithBuildDependencies()
+                        .ToList();
 
                     var tests = suite.HasParameters("test") ? suite.GetParameters<Tests>("test") : new Tests();
                     var buildOutputs = RunWithProjects(allProjects, dumpMode, dumpDepsMode).ToList();

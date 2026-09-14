@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Bari.Core.Commands.Helper;
 using Bari.Core.Model;
 
 namespace Bari.Plugins.VsCore.VisualStudio.SolutionName
@@ -62,6 +63,19 @@ namespace Bari.Plugins.VsCore.VisualStudio.SolutionName
             }
             // otherwise: there are partial matches -> fallback
 
+            var primaryModule = prjs.Select(project => project.Module).FirstOrDefault();
+            var primaryMatch = matches.FirstOrDefault(match => match.Module == primaryModule);
+            if (primaryMatch != null &&
+                !primaryMatch.Partial &&
+                matches.Any(match => match.Partial) &&
+                IsDependencyClosureOfPrimaryModule(prjs, primaryModule))
+            {
+                // A module/project command may include a partial set of other modules as its
+                // transitive build dependencies. Keep the requested, fully covered module in
+                // the name instead of falling back to an opaque hash.
+                return primaryMatch.Module.Name + GetPostfix(primaryMatch.IncludingTests) + "-and-deps";
+            }
+
             if (prjs.Count == 1)
             {
                 // Single project
@@ -71,6 +85,13 @@ namespace Bari.Plugins.VsCore.VisualStudio.SolutionName
             {
                 return fallbackGenerator.GetName(prjs);
             }
+        }
+
+        private static bool IsDependencyClosureOfPrimaryModule(IEnumerable<Project> projects, Module primaryModule)
+        {
+            var projectSet = new HashSet<Project>(projects);
+            var primaryProjects = projectSet.Where(project => project.Module == primaryModule);
+            return projectSet.SetEquals(primaryProjects.WithBuildDependencies());
         }
 
         private string GetNameBasedOnMultipleModules(IEnumerable<Module> modules, bool allHasTests)

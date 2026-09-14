@@ -17,6 +17,7 @@ msbuild:
     when not bootstrap:
         version: Dotnet
     restore: true
+    include-output-subdirectories: true
 
 test:
   enabled-runners:

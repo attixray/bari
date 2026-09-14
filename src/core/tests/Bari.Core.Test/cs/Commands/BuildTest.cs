@@ -1,5 +1,6 @@
 ﻿using Bari.Core.Commands;
 using Bari.Core.Generic;
+using Bari.Core.Commands.Helper;
 using Bari.Core.Model;
 using Bari.Core.Test.Helper;
 using Bari.Core.UI;
@@ -51,6 +52,22 @@ namespace Bari.Core.Test.Commands
             var cmd = kernel.Get<ICommand>("build");
             cmd.Description.Should().NotBeNullOrWhiteSpace();
             cmd.Help.Should().NotBeNullOrWhiteSpace();
+        }
+
+        [Test]
+        public void CommandTargetProjectsIncludeTransitiveBuildDependencies()
+        {
+            var rootModule = suite.GetModule("root");
+            var dependencyModule = suite.GetModule("dependency");
+            var root = rootModule.GetProject("root");
+            var middle = rootModule.GetProject("middle");
+            var leaf = dependencyModule.GetProject("leaf");
+
+            root.AddReference(new Reference(new System.Uri("module://middle"), ReferenceType.Build));
+            middle.AddReference(new Reference(new System.Uri("suite://dependency/leaf"), ReferenceType.Build));
+            leaf.AddReference(new Reference(new System.Uri("suite://root/root"), ReferenceType.Build));
+
+            new[] {root}.WithBuildDependencies().Should().Equal(root, middle, leaf);
         }
     }
 }

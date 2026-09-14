@@ -155,7 +155,7 @@ Example: `bari build --dump` or `bari build HelloWorldModule --dump`
 
             var context = buildContextFactory.CreateBuildContext();
 
-            var projects = target.Projects.ToList();
+            var projects = target.Projects.WithBuildDependencies().ToList();
 
             IBuilder rootBuilder = coreBuilderFactory.Merge(
                 projectBuilders

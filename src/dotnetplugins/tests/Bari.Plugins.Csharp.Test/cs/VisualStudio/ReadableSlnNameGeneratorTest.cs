@@ -125,10 +125,13 @@ namespace Bari.Plugins.Csharp.Test.VisualStudio
         }
 
         [Test]
-        public void NoPartial_SomeHasTests()
+        public void FullPrimaryModuleWithTestsAndPartialDependencies()
         {
+            mod8.GetProject("unused");
+            proj11.AddReference(new Reference(new System.Uri("suite://mod8/proj8"), ReferenceType.Build));
+
             var name = generator.GetName(new[] {proj11, tproj11, proj81});
-            name.Should().Be("fallback");
+            name.Should().Be("mod1-withtests-and-deps");
         }
 
         [Test]

@@ -28,7 +28,8 @@ namespace Bari.Plugins.VsCore.Model.Loader
             return new Dictionary<string, Action>
                 {
                     {"version", () => { target.Version = ParseEnum<MSBuildVersion>(value, "MSBuild version"); }},
-                    {"restore", () => { target.Restore = ParseBool(parser, value); }}
+                    {"restore", () => { target.Restore = ParseBool(parser, value); }},
+                    {"include-output-subdirectories", () => { target.IncludeOutputSubdirectories = ParseBool(parser, value); }}
                 };
         }
     }

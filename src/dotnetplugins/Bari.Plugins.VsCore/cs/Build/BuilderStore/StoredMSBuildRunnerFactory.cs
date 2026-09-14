@@ -15,9 +15,9 @@ namespace Bari.Plugins.VsCore.Build.BuilderStore
             this.store = store;
         }
 
-        public MSBuildRunner CreateMSBuildRunner(SlnBuilder slnBuilder, TargetRelativePath slnPath, MSBuildVersion version, bool restore)
+        public MSBuildRunner CreateMSBuildRunner(SlnBuilder slnBuilder, TargetRelativePath slnPath, MSBuildVersion version, bool restore, bool includeOutputSubdirectories)
         {
-            return store.Add(baseImpl.CreateMSBuildRunner(slnBuilder, slnPath, version, restore));
+            return store.Add(baseImpl.CreateMSBuildRunner(slnBuilder, slnPath, version, restore, includeOutputSubdirectories));
         }
     }
 }
