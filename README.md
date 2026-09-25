@@ -41,8 +41,9 @@ dotnet C:/Bari-net10/bari.dll --target release test
 This build uses **IronPython 3** with automatic compatibility for common Python 2
 build-script constructs, including old `print` statements and dictionary iterators.
 Suite scripts are adapted in memory; their source files are not rewritten.
-Old compiled plugins need rebuilding. Legacy NuGet distributions and `selfupdate` cannot update
-this runtime. See [the migration notes](doc/net10-migration.md) for details.
+Old compiled plugins need rebuilding. Legacy NuGet distributions cannot update this runtime;
+install and update from the [releases](https://github.com/attixray/bari/releases) with
+`install-bari.ps1` or `bari selfupdate`. See [the migration notes](doc/net10-migration.md) for details.
 
 ## Documentation ##
 Documentation is under construction and available from the [getting started page](https://github.com/vigoo/bari/wiki/GettingStarted).

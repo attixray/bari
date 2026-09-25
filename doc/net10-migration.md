@@ -99,14 +99,26 @@ not turn Bari into a `dotnet tool` package.
   `.deps.json`, `.runtimeconfig.json`, `lib/`, and `runtimes/`. The build is
   framework-dependent and requires the .NET 10 runtime. Recursive build outputs
   now preserve these directories during product merging and cache restoration.
-- **Updates:** `selfupdate` returns a clear error instead of replacing the .NET 10
-  distribution with an old Framework NuGet package. Update with bootstrap or by
-  replacing the complete distribution.
+- **Updates:** `selfupdate` no longer uses the old Framework NuGet packages. It
+  checks the latest GitHub release of `attixray/bari`, and if that is newer it
+  starts the release's `install-bari.ps1` in a new window. The script waits for
+  bari to exit, downloads `bari-<tag>-net10.zip`, checks it against
+  `SHA256SUMS`, and replaces the installation directory, keeping the previous
+  one as `<directory>.previous`. The script also installs on its own:
+
+  ```powershell
+  & ([scriptblock]::Create((Invoke-RestMethod https://github.com/attixray/bari/releases/latest/download/install-bari.ps1))) -InstallDir C:\Bari
+  ```
+
+  `-Version <tag>` installs a given release. Bootstrap and copying a complete
+  distribution still work.
 - **Releases:** pushing a tag builds that commit and publishes a GitHub release
   with the distribution as `bari-<tag>-net10.zip` and its `SHA256SUMS`. The tag
   is also the version: a build prints `<tag>.<commits since the tag>`, so the
   release of a tag itself is `<tag>.0`. A tag pushed earlier can be released by
-  running the CI workflow manually with `release-tag` set to it.
+  running the CI workflow manually with `release-tag` set to it; for a release
+  that exists already, that replaces its files. Every release also carries
+  `install-bari.ps1`.
 - **Contracts:** runtime Code Contracts rewriting is disabled for Bari itself.
   The Code Contracts plugin remains available to existing Framework suites.
 - **Caches:** bootstrap performs a clean rebuild. Do not share build caches
