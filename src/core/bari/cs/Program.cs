@@ -35,7 +35,14 @@ namespace Bari.Console
             catch (Exception ex)
             {
                 // Startup can fail before the kernel or user output is available.
-                System.Console.Error.WriteLine(ex.ToString());
+                try
+                {
+                    System.Console.Error.WriteLine(ex.ToString());
+                }
+                catch (IOException)
+                {
+                    // Nobody reads the output any more, e.g. a cancelled Visual Studio build.
+                }
                 return 2;
             }
         }

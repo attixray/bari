@@ -9,7 +9,7 @@ using Bari.Plugins.VsCore.VisualStudio.SolutionItems;
 
 namespace Bari.Plugins.AddonSupport.VisualStudio.SolutionItems
 {
-    class AddonSupportSolutionItemProvider : ISolutionItemProvider
+    public class AddonSupportSolutionItemProvider : ISolutionItemProvider
     {
         private readonly IFileSystemDirectory targetRoot;
         private readonly Suite suite;
@@ -33,25 +33,10 @@ namespace Bari.Plugins.AddonSupport.VisualStudio.SolutionItems
 
         private TargetRelativePath GenerateAddonSupportFile(string solutionName)
         {
-            string contents = AddonSupportData();
             var path = new TargetRelativePath("", solutionName + ".yaml");
-            bool writeFile = true;
-
-            if (targetRoot.Exists(path.RelativePath))
-            {
-                using (var reader = targetRoot.ReadTextFile(path.RelativePath))
-                {
-                    string existingContents = reader.ReadToEnd();
-                    writeFile = existingContents != contents;
-                }
-            }
-
-            if (writeFile)
-            {
-                using (var writer = targetRoot.CreateTextFile(path.RelativePath))
-                    writer.WriteLine(contents);
-            }
-
+            // Include the line break the file has always ended with, or the comparison never
+            // matches and the file is rewritten on every run.
+            targetRoot.UpdateTextFile(path.RelativePath, AddonSupportData() + Environment.NewLine);
             return path;
         }
 
