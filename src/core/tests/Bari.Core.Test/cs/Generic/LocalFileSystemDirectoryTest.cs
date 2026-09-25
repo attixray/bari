@@ -335,5 +335,69 @@ namespace Bari.Core.Test.Generic
                 File.Exists(file).Should().BeTrue();
             }
         }
+
+        [Test]
+        public void DeleteGoesOnPastAHeldFileAndNamesItsHolder()
+        {
+            if (!OperatingSystem.IsWindows())
+                Assert.Ignore("Only Windows keeps an open file from being deleted");
+
+            using (var tmp = new TempDirectory())
+            {
+                var root = Path.Combine(tmp, "target");
+                Directory.CreateDirectory(Path.Combine(root, "a"));
+                Directory.CreateDirectory(Path.Combine(root, "b"));
+                var held = Path.Combine(root, "a", "held.dll");
+                File.WriteAllText(held, "x");
+                File.WriteAllText(Path.Combine(root, "a", "other.dll"), "x");
+                File.WriteAllText(Path.Combine(root, "b", "third.dll"), "x");
+
+                using (new FileStream(held, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var dir = new LocalFileSystemDirectory(root);
+                    Action delete = () => dir.Delete();
+
+                    var failure = delete.Should().Throw<PartialDeleteException>().Which;
+                    failure.Failures.Should().ContainSingle()
+                        .Which.Should().Contain("held.dll").And.Contain("Held by: " + System.Diagnostics.Process.GetCurrentProcess().ProcessName + " (" + Environment.ProcessId + ")");
+                }
+
+                File.Exists(held).Should().BeTrue();
+                File.Exists(Path.Combine(root, "a", "other.dll")).Should().BeFalse();
+                Directory.Exists(Path.Combine(root, "b")).Should().BeFalse();
+            }
+        }
+
+        [Test]
+        public void PartialDeleteGoesOnPastAHeldFile()
+        {
+            if (!OperatingSystem.IsWindows())
+                Assert.Ignore("Only Windows keeps an open file from being deleted");
+
+            using (var tmp = new TempDirectory())
+            {
+                Directory.CreateDirectory(Path.Combine(tmp, ".vs"));
+                Directory.CreateDirectory(Path.Combine(tmp, "a"));
+                File.WriteAllText(Path.Combine(tmp, ".vs", "state"), "x");
+                var held = Path.Combine(tmp, "a", "held.dll");
+                File.WriteAllText(held, "x");
+                File.WriteAllText(Path.Combine(tmp, "a", "other.dll"), "x");
+                File.WriteAllText(Path.Combine(tmp, "b.txt"), "x");
+
+                using (new FileStream(held, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var dir = new LocalFileSystemDirectory(tmp);
+                    Action delete = () => dir.Delete(p => !p.StartsWith(".vs"));
+
+                    delete.Should().Throw<PartialDeleteException>()
+                        .Which.Failures.Should().ContainSingle().Which.Should().Contain("held.dll");
+                }
+
+                File.Exists(held).Should().BeTrue();
+                File.Exists(Path.Combine(tmp, "a", "other.dll")).Should().BeFalse();
+                File.Exists(Path.Combine(tmp, "b.txt")).Should().BeFalse();
+                File.Exists(Path.Combine(tmp, ".vs", "state")).Should().BeTrue();
+            }
+        }
     }
 }

@@ -46,6 +46,104 @@ namespace Bari.Core.Generic
             Run(() => Directory.Delete(path, recursive: true), path, isFile: false);
         }
 
+        /// <summary>
+        /// Deletes a directory tree like <see cref="DeleteDirectory"/>, but if some entries still cannot be
+        /// deleted after the retries, it deletes everything else and then reports all of them together.
+        /// </summary>
+        /// <param name="path">Absolute path of the directory</param>
+        /// <exception cref="PartialDeleteException">Thrown if some entries could not be deleted.</exception>
+        public static void DeleteDirectoryTree(string path)
+        {
+            try
+            {
+                DeleteDirectory(path);
+                return;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return;
+            }
+            catch (Exception ex) when (IsDeleteFailure(ex))
+            {
+                log.DebugFormat("Deleting what can be deleted under {0} after: {1}", path, ex.Message);
+            }
+
+            var failures = new List<string>();
+            DeleteContents(path, failures);
+            DeleteEmptyDirectory(path, failures);
+            if (failures.Count > 0)
+                throw new PartialDeleteException(path, failures);
+        }
+
+        /// <summary>
+        /// Checks whether an exception is a failed delete, which <see cref="DeleteDirectoryTree"/> and partial
+        /// deletes collect instead of stopping at.
+        /// </summary>
+        public static bool IsDeleteFailure(Exception ex)
+        {
+            return ex is IOException || ex is UnauthorizedAccessException;
+        }
+
+        // One attempt per entry: the whole tree has already been retried.
+        private static void DeleteContents(string directory, List<string> failures)
+        {
+            foreach (var file in Directory.EnumerateFiles(directory))
+            {
+                try
+                {
+                    DeleteOnce(file);
+                }
+                catch (IOException ex) when (IsSharingViolation(ex))
+                {
+                    var holders = DescribeHolders(file);
+                    failures.Add(holders == null ? ex.Message : String.Format("{0} Held by: {1}.", ex.Message, holders));
+                }
+                catch (Exception ex) when (IsDeleteFailure(ex))
+                {
+                    failures.Add(ex.Message);
+                }
+            }
+
+            foreach (var child in Directory.EnumerateDirectories(directory))
+            {
+                // A junction or symbolic link is deleted itself, not followed.
+                if (!new DirectoryInfo(child).Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    DeleteContents(child, failures);
+                DeleteEmptyDirectory(child, failures);
+            }
+        }
+
+        private static void DeleteOnce(string file)
+        {
+            try
+            {
+                File.Delete(file);
+            }
+            catch (UnauthorizedAccessException) when (File.GetAttributes(file).HasFlag(FileAttributes.ReadOnly))
+            {
+                File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
+                File.Delete(file);
+            }
+        }
+
+        private static void DeleteEmptyDirectory(string directory, List<string> failures)
+        {
+            try
+            {
+                Directory.Delete(directory);
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
+            catch (Exception ex) when (IsDeleteFailure(ex))
+            {
+                // A directory that still holds an entry reported above is not a failure of its own.
+                if (!Directory.Exists(directory) || Directory.EnumerateFileSystemEntries(directory).Any())
+                    return;
+                failures.Add(String.Format("{0}: {1}", directory, ex.Message));
+            }
+        }
+
         private static void Run(Action delete, string path, bool isFile)
         {
             for (int attempt = 0; ; attempt++)
