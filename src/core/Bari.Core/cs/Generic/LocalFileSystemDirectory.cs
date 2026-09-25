@@ -237,7 +237,7 @@ namespace Bari.Core.Generic
         /// <param name="name">Name of the directory</param>
         public void DeleteDirectory(string name)
         {
-            Directory.Delete(Path.Combine(path, name), recursive: true);
+            TransientDelete.DeleteDirectory(Path.Combine(path, name));
         }
 
         /// <summary>
@@ -246,7 +246,7 @@ namespace Bari.Core.Generic
         /// <param name="name">Name of the file</param>
         public void DeleteFile(string name)
         {
-            File.Delete(Path.Combine(path, name));
+            TransientDelete.DeleteFile(Path.Combine(path, name));
         }
 
         /// <summary>
@@ -254,7 +254,7 @@ namespace Bari.Core.Generic
         /// </summary>
         public void Delete()
         {
-            Directory.Delete(path, recursive: true);
+            TransientDelete.DeleteDirectory(path);
         }
 
         /// <summary>
