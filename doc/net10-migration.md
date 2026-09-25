@@ -102,6 +102,11 @@ not turn Bari into a `dotnet tool` package.
 - **Updates:** `selfupdate` returns a clear error instead of replacing the .NET 10
   distribution with an old Framework NuGet package. Update with bootstrap or by
   replacing the complete distribution.
+- **Releases:** pushing a tag builds that commit and publishes a GitHub release
+  with the distribution as `bari-<tag>-net10.zip` and its `SHA256SUMS`. The tag
+  is also the version: a build prints `<tag>.<commits since the tag>`, so the
+  release of a tag itself is `<tag>.0`. A tag pushed earlier can be released by
+  running the CI workflow manually with `release-tag` set to it.
 - **Contracts:** runtime Code Contracts rewriting is disabled for Bari itself.
   The Code Contracts plugin remains available to existing Framework suites.
 - **Caches:** bootstrap performs a clean rebuild. Do not share build caches

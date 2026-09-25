@@ -2,9 +2,17 @@ name: CI
 on:
   push:
     branches-ignore: [site-src, gh-pages]
+    tags: ['*']
   pull_request:
     branches-ignore: [site-src, gh-pages]
   workflow_dispatch:
+    inputs:
+      release-tag:
+        description: Build this existing tag and publish it as a release (leave empty for a normal run)
+        required: false
+        default: ''
+permissions:
+  contents: read
 jobs:
   build-test:
     runs-on: windows-latest
@@ -12,6 +20,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          # The version comes from git describe, so a release is built from its tag.
+          ref: ${{ inputs.release-tag }}
           fetch-depth: 0
       - name: Install .NET 10
         uses: actions/setup-dotnet@v6
@@ -25,3 +35,35 @@ jobs:
         with:
           name: bari-net10
           path: target/full/
+
+  release:
+    # A pushed tag, or a manual run naming an existing tag, becomes a GitHub release
+    # with the distribution as a zip, so it outlives the CI artifact.
+    if: github.ref_type == 'tag' || inputs.release-tag != ''
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: bari-net10
+          path: bari
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release-tag || github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip_name="bari-$TAG-net10.zip"
+          (cd bari && zip -qr "../$zip_name" .)
+          sha256sum "$zip_name" > SHA256SUMS
+          cat > notes.md <<NOTES
+          Framework-dependent build of bari; it needs the .NET 10 runtime.
+          Unzip $zip_name and replace the whole installation directory with it.
+          NOTES
+          gh release create "$TAG" --verify-tag --draft --title "bari $TAG" --notes-file notes.md --generate-notes
+          gh release upload "$TAG" "$zip_name" SHA256SUMS
+          gh release edit "$TAG" --draft=false
