@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Bari.Core.UI;
 
 namespace Bari.Console.UI
@@ -10,6 +11,7 @@ namespace Bari.Console.UI
     {
         private readonly IParameters parameters;
         private int indent;
+        private bool outputClosed;
         
         public ConsoleUserInterface(IParameters parameters)
         {
@@ -30,6 +32,11 @@ namespace Bari.Console.UI
         /// </summary>
         /// <param name="message">The message to be shown</param>
         public void Message(string message)
+        {
+            Write(() => WriteMessage(message));
+        }
+
+        private void WriteMessage(string message)
         {
             System.Console.ForegroundColor = ConsoleColor.Gray;
 
@@ -93,12 +100,15 @@ namespace Bari.Console.UI
         /// <param name="description">The description</param>
         public void Describe(string target, string description)
         {
-            System.Console.ForegroundColor = ConsoleColor.Gray;
-            System.Console.Write(IndentString + "    ");
-            System.Console.ForegroundColor = ConsoleColor.Yellow;
-            System.Console.Write(target);
-            System.Console.ForegroundColor = ConsoleColor.Gray;
-            System.Console.WriteLine(" - " + description);
+            Write(() =>
+            {
+                System.Console.ForegroundColor = ConsoleColor.Gray;
+                System.Console.Write(IndentString + "    ");
+                System.Console.ForegroundColor = ConsoleColor.Yellow;
+                System.Console.Write(target);
+                System.Console.ForegroundColor = ConsoleColor.Gray;
+                System.Console.WriteLine(" - " + description);
+            });
         }
 
         /// <summary>
@@ -110,24 +120,29 @@ namespace Bari.Console.UI
         {
             if (!parameters.QuietMode)
             {
-                System.Console.ForegroundColor = ConsoleColor.Yellow;
-                System.Console.WriteLine(IndentString + "Warning: {0}", message);
-    
-                if (hints != null && hints.Length > 0)
-                {
-                    System.Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    System.Console.WriteLine("\n" + IndentString + "Hints:");
-    
-                    Indent();
-                    foreach (var hint in hints)
-                    {
-                        System.Console.WriteLine(IndentString + "- {0}", hint);
-                    }
-                    Unindent();
-                }
-    
-                System.Console.ForegroundColor = ConsoleColor.Gray;
+                Write(() => WriteWarning(message, hints));
             }
+        }
+
+        private void WriteWarning(string message, string[] hints)
+        {
+            System.Console.ForegroundColor = ConsoleColor.Yellow;
+            System.Console.WriteLine(IndentString + "Warning: {0}", message);
+
+            if (hints != null && hints.Length > 0)
+            {
+                System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                System.Console.WriteLine("\n" + IndentString + "Hints:");
+
+                Indent();
+                foreach (var hint in hints)
+                {
+                    System.Console.WriteLine(IndentString + "- {0}", hint);
+                }
+                Unindent();
+            }
+
+            System.Console.ForegroundColor = ConsoleColor.Gray;
         }
 
         /// <summary>
@@ -136,9 +151,32 @@ namespace Bari.Console.UI
         /// <param name="message">Error message</param>
         public void Error(string message)
         {
-            System.Console.ForegroundColor = ConsoleColor.Red;
-            System.Console.WriteLine(IndentString + message);
-            System.Console.ForegroundColor = ConsoleColor.Gray;
+            Write(() =>
+            {
+                System.Console.ForegroundColor = ConsoleColor.Red;
+                System.Console.WriteLine(IndentString + message);
+                System.Console.ForegroundColor = ConsoleColor.Gray;
+            });
+        }
+
+        /// <summary>
+        /// Writes to the console unless its output was closed. When the process reading bari's
+        /// output goes away, for example a cancelled Visual Studio build, writing or changing the
+        /// color throws; bari then keeps working without output instead of failing.
+        /// </summary>
+        private void Write(Action write)
+        {
+            if (outputClosed)
+                return;
+
+            try
+            {
+                write();
+            }
+            catch (IOException)
+            {
+                outputClosed = true;
+            }
         }
 
         public void Indent()
