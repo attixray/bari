@@ -188,12 +188,12 @@ namespace Bari.Plugins.Csharp.Build
         {
             var csprojPath = project.Name + ".csproj";
             const string csversionPath = "version.cs";
-            TextWriter csversion = null;
+            StringWriter csversion = null;
 
-            using (var csproj = project.RootDirectory.GetChildDirectory("cs").CreateTextFile(csprojPath))
+            using (var csproj = new Utf8StringWriter())
             {
                 if (!project.IsSDKProject())
-                    csversion = project.RootDirectory.CreateTextFile(csversionPath);
+                    csversion = new Utf8StringWriter();
 
                 var references = new HashSet<TargetRelativePath>();
                 foreach (var refBuilder in context.GetDependencies(this).OfType<IReferenceBuilder>().Where(r => r.Reference.Type == ReferenceType.Build))
@@ -211,9 +211,14 @@ namespace Bari.Plugins.Csharp.Build
                 }
 
                 generator.Generate(project, references, csproj, csversion, csversionPath);
-                
+
+                // Unchanged project files are left alone, see UpdateTextFile
+                project.RootDirectory.GetChildDirectory("cs").UpdateTextFile(csprojPath, csproj.ToString());
                 if (csversion != null)
+                {
+                    project.RootDirectory.UpdateTextFile(csversionPath, csversion.ToString());
                     csversion.Dispose();
+                }
             }
 
             var ret = new HashSet<TargetRelativePath>(

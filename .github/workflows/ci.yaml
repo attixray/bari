@@ -4,6 +4,7 @@ on:
     branches-ignore: [site-src, gh-pages]
   pull_request:
     branches-ignore: [site-src, gh-pages]
+  workflow_dispatch:
 jobs:
   build-test:
     runs-on: windows-latest

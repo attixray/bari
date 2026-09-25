@@ -193,12 +193,12 @@ namespace Bari.Plugins.Fsharp.Build
         {
             var fsprojPath = project.Name + ".fsproj";
             const string fsversionPath = "version.fs";
-            TextWriter fsversion = null;
+            StringWriter fsversion = null;
 
-            using (var fsproj = project.RootDirectory.GetChildDirectory("fs").CreateTextFile(fsprojPath))
+            using (var fsproj = new Utf8StringWriter())
             {
                 if (!project.IsSDKProject())
-                    fsversion = project.RootDirectory.CreateTextFile(fsversionPath);
+                    fsversion = new Utf8StringWriter();
 
                 var references = new HashSet<TargetRelativePath>();
                 foreach (var refBuilder in context.GetDependencies(this).OfType<IReferenceBuilder>().Where(r => r.Reference.Type == ReferenceType.Build))
@@ -208,9 +208,14 @@ namespace Bari.Plugins.Fsharp.Build
                 }
 
                 generator.Generate(project, references, fsproj, fsversion, fsversionPath);
-                
+
+                // Unchanged project files are left alone, see UpdateTextFile
+                project.RootDirectory.GetChildDirectory("fs").UpdateTextFile(fsprojPath, fsproj.ToString());
                 if (fsversion != null)
+                {
+                    project.RootDirectory.UpdateTextFile(fsversionPath, fsversion.ToString());
                     fsversion.Dispose();
+                }
             }
 
             var ret = new HashSet<TargetRelativePath>(

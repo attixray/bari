@@ -1,5 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Bari.Core.Generic;
 using Bari.Core.Test.Helper;
 using Castle.Core.Resource;
@@ -261,6 +265,74 @@ namespace Bari.Core.Test.Generic
                 paths.Should().Contain("");
 
                 Directory.Exists(tmp).Should().BeFalse();
+            }
+        }
+
+        [Test]
+        public void DeleteFileWaitsForABriefLock()
+        {
+            using (var tmp = new TempDirectory())
+            {
+                var file = Path.Combine(tmp, "held.csproj");
+                File.WriteAllText(file, "<Project />");
+                var reader = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var release = Task.Run(() =>
+                {
+                    Thread.Sleep(300);
+                    reader.Dispose();
+                });
+
+                var dir = new LocalFileSystemDirectory(tmp);
+                dir.DeleteFile("held.csproj");
+
+                release.Wait();
+                File.Exists(file).Should().BeFalse();
+            }
+        }
+
+        [Test]
+        public void DeleteWaitsForABriefLockInTheTree()
+        {
+            using (var tmp = new TempDirectory())
+            {
+                var root = Path.Combine(tmp, "target");
+                Directory.CreateDirectory(Path.Combine(root, "module"));
+                var file = Path.Combine(root, "module", "held.dll");
+                File.WriteAllText(file, "x");
+                var reader = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var release = Task.Run(() =>
+                {
+                    Thread.Sleep(300);
+                    reader.Dispose();
+                });
+
+                var dir = new LocalFileSystemDirectory(root);
+                dir.Delete();
+
+                release.Wait();
+                Directory.Exists(root).Should().BeFalse();
+            }
+        }
+
+        [Test]
+        public void DeleteFileNamesTheProcessHoldingIt()
+        {
+            if (!OperatingSystem.IsWindows())
+                Assert.Ignore("The Restart Manager is Windows only");
+
+            using (var tmp = new TempDirectory())
+            {
+                var file = Path.Combine(tmp, "held.csproj");
+                File.WriteAllText(file, "<Project />");
+                using (new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var dir = new LocalFileSystemDirectory(tmp);
+                    Action delete = () => dir.DeleteFile("held.csproj");
+
+                    delete.Should().Throw<IOException>()
+                        .WithMessage("*Held by: *" + System.Diagnostics.Process.GetCurrentProcess().ProcessName + " (" + Environment.ProcessId + ")*");
+                }
+                File.Exists(file).Should().BeTrue();
             }
         }
     }
