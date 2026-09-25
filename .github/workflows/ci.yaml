@@ -51,7 +51,11 @@ jobs:
           .\scripts\install-bari.ps1 -InstallDir $dir
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           if (-not (Test-Path "$dir\bari.dll") -or -not (Test-Path "$dir.previous\bari.dll")) { throw 'The install script did not install and keep the previous installation.' }
-          & "$dir\bari.exe" help | Select-Object -First 3
+          # Read all of the output: a pipeline that stops early closes bari's output and fails the step.
+          $help = & "$dir\bari.exe" help
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $help | Select-Object -First 2
+          if (-not ($help -match '^bari version [1-9]')) { throw 'The installed bari did not report its version.' }
 
   release:
     # A pushed tag, or a manual run naming an existing tag, becomes a GitHub release
