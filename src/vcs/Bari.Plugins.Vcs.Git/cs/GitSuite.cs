@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using Bari.Core.Generic;
 
 namespace Bari.Plugins.Vcs.Git
@@ -8,6 +9,7 @@ namespace Bari.Plugins.Vcs.Git
     public class GitSuite
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(typeof(GitSuite));
+        private static readonly Regex describeOutput = new Regex(@"^(.+)-(\d+)-g[0-9a-f]+$");
 
         private readonly IFileSystemDirectory suiteRoot;
         private readonly IEnvironmentVariableContext environmentVariableContext;
@@ -84,15 +86,17 @@ namespace Bari.Plugins.Vcs.Git
             var localRoot = suiteRoot as LocalFileSystemDirectory;
             if (localRoot != null)
             {
-                var output = RunGit(localRoot.AbsolutePath, "describe");
+                // --long also describes the tagged commit itself (as <tag>-0-g<hash>), and --tags accepts
+                // lightweight tags too.
+                var output = RunGit(localRoot.AbsolutePath, "describe --tags --long");
                 log.Debug(output);
                 if (output != null)
                 {
-                    var parts = output.Split('-');
-                    if (parts.Length >= 2)
+                    var match = describeOutput.Match(output.Trim());
+                    if (match.Success)
                     {
-                        environmentVariableContext.Define("GIT_TAG", parts[0]);
-                        environmentVariableContext.Define("GIT_REVNO", parts[1]);
+                        environmentVariableContext.Define("GIT_TAG", match.Groups[1].Value);
+                        environmentVariableContext.Define("GIT_REVNO", match.Groups[2].Value);
                     }
                 }
             }
