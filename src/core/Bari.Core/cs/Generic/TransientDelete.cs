@@ -84,24 +84,41 @@ namespace Bari.Core.Generic
             return ex is IOException || ex is UnauthorizedAccessException;
         }
 
+        /// <summary>
+        /// Deletes files, giving each one attempt first and then retrying the ones still held together,
+        /// so that several held files cost one retry period instead of one each.
+        /// </summary>
+        /// <param name="paths">Absolute paths of the files</param>
+        /// <param name="failures">Receives a message for every file that could not be deleted, naming the
+        /// processes holding it when known</param>
+        public static void DeleteFiles(IEnumerable<string> paths, List<string> failures)
+        {
+            var pending = paths.Where(file => !TryDeleteOnce(file)).ToList();
+            foreach (var delay in retryDelays)
+            {
+                if (pending.Count == 0)
+                    return;
+
+                Thread.Sleep(delay);
+                pending = pending.Where(file => !TryDeleteOnce(file)).ToList();
+            }
+
+            foreach (var file in pending)
+            {
+                var failure = DeleteOrDescribeFailure(file);
+                if (failure != null)
+                    failures.Add(failure);
+            }
+        }
+
         // One attempt per entry: the whole tree has already been retried.
         private static void DeleteContents(string directory, List<string> failures)
         {
             foreach (var file in Directory.EnumerateFiles(directory))
             {
-                try
-                {
-                    DeleteOnce(file);
-                }
-                catch (IOException ex) when (IsSharingViolation(ex))
-                {
-                    var holders = DescribeHolders(file);
-                    failures.Add(holders == null ? ex.Message : String.Format("{0} Held by: {1}.", ex.Message, holders));
-                }
-                catch (Exception ex) when (IsDeleteFailure(ex))
-                {
-                    failures.Add(ex.Message);
-                }
+                var failure = DeleteOrDescribeFailure(file);
+                if (failure != null)
+                    failures.Add(failure);
             }
 
             foreach (var child in Directory.EnumerateDirectories(directory))
@@ -110,6 +127,38 @@ namespace Bari.Core.Generic
                 if (!new DirectoryInfo(child).Attributes.HasFlag(FileAttributes.ReparsePoint))
                     DeleteContents(child, failures);
                 DeleteEmptyDirectory(child, failures);
+            }
+        }
+
+        private static bool TryDeleteOnce(string file)
+        {
+            try
+            {
+                DeleteOnce(file);
+                return true;
+            }
+            catch (Exception ex) when (IsDeleteFailure(ex))
+            {
+                return false;
+            }
+        }
+
+        // Returns null if the file could be deleted, otherwise why not.
+        private static string DeleteOrDescribeFailure(string file)
+        {
+            try
+            {
+                DeleteOnce(file);
+                return null;
+            }
+            catch (IOException ex) when (IsSharingViolation(ex))
+            {
+                var holders = DescribeHolders(file);
+                return holders == null ? ex.Message : String.Format("{0} Held by: {1}.", ex.Message, holders);
+            }
+            catch (Exception ex) when (IsDeleteFailure(ex))
+            {
+                return ex.Message;
             }
         }
 

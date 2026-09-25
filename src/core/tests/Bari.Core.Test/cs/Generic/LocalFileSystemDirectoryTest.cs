@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bari.Core.Generic;
@@ -397,6 +398,44 @@ namespace Bari.Core.Test.Generic
                 File.Exists(Path.Combine(tmp, "a", "other.dll")).Should().BeFalse();
                 File.Exists(Path.Combine(tmp, "b.txt")).Should().BeFalse();
                 File.Exists(Path.Combine(tmp, ".vs", "state")).Should().BeTrue();
+            }
+        }
+
+        [Test]
+        public void PartialDeleteRetriesHeldFilesTogether()
+        {
+            if (!OperatingSystem.IsWindows())
+                Assert.Ignore("Only Windows keeps an open file from being deleted");
+
+            using (var tmp = new TempDirectory())
+            {
+                var held = new[] { "a", "b", "c" }.Select(name =>
+                {
+                    Directory.CreateDirectory(Path.Combine(tmp, name));
+                    var file = Path.Combine(tmp, name, "held.dll");
+                    File.WriteAllText(file, "x");
+                    return file;
+                }).ToList();
+                var handles = held.Select(file => new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)).ToList();
+                try
+                {
+                    var dir = new LocalFileSystemDirectory(tmp);
+                    var watch = Stopwatch.StartNew();
+                    Action delete = () => dir.Delete(p => true);
+
+                    var failure = delete.Should().Throw<PartialDeleteException>().Which;
+                    watch.Stop();
+
+                    failure.Failures.Should().HaveCount(3);
+                    failure.Message.IndexOf(held[0], StringComparison.OrdinalIgnoreCase).Should()
+                        .BeLessThan(failure.Message.IndexOf(held[2], StringComparison.OrdinalIgnoreCase));
+                    // One retry period of about 3 s for all of them, not one per file.
+                    watch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(7));
+                }
+                finally
+                {
+                    handles.ForEach(handle => handle.Dispose());
+                }
             }
         }
     }

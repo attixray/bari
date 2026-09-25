@@ -264,33 +264,37 @@ namespace Bari.Core.Generic
         /// <exception cref="PartialDeleteException">Thrown if some entries could not be deleted; all others are.</exception>
         public void Delete(Func<string, bool> filter)
         {
+            var files = new List<string>();
+            CollectFiles(filter, String.Empty, files);
+
             var failures = new List<string>();
-            Delete(filter, String.Empty, failures);
+            TransientDelete.DeleteFiles(files, failures);
+            DeleteEmptyDirectories(filter, String.Empty, failures);
             if (failures.Count > 0)
                 throw new PartialDeleteException(path, failures);
         }
 
-        private void Delete(Func<string, bool> filter, string prefix, List<string> failures)
+        private void CollectFiles(Func<string, bool> filter, string prefix, List<string> files)
         {
             foreach (var child in ChildDirectories)
             {
                 var wrapper = (LocalFileSystemDirectory)GetChildDirectory(child);
-                wrapper.Delete(filter, Path.Combine(prefix, child), failures);
+                wrapper.CollectFiles(filter, Path.Combine(prefix, child), files);
             }
 
             foreach (var file in Files)
             {
                 if (filter(Path.Combine(prefix, file)))
-                {
-                    try
-                    {
-                        DeleteFile(file);
-                    }
-                    catch (Exception ex) when (TransientDelete.IsDeleteFailure(ex))
-                    {
-                        failures.Add(ex.Message);
-                    }
-                }
+                    files.Add(Path.Combine(path, file));
+            }
+        }
+
+        private void DeleteEmptyDirectories(Func<string, bool> filter, string prefix, List<string> failures)
+        {
+            foreach (var child in ChildDirectories)
+            {
+                var wrapper = (LocalFileSystemDirectory)GetChildDirectory(child);
+                wrapper.DeleteEmptyDirectories(filter, Path.Combine(prefix, child), failures);
             }
 
             if (!ChildDirectories.Any() &&

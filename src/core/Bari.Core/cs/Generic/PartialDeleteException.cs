@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -32,7 +33,7 @@ namespace Bari.Core.Generic
         {
             var message = new StringBuilder();
             message.AppendFormat("Could not delete {0} {1} under {2}:", failures.Count, failures.Count == 1 ? "entry" : "entries", root);
-            foreach (var failure in failures.Take(ListedFailures))
+            foreach (var failure in failures.OrderBy(failure => failure, StringComparer.OrdinalIgnoreCase).Take(ListedFailures))
                 message.AppendLine().Append("    ").Append(failure);
             if (failures.Count > ListedFailures)
                 message.AppendLine().AppendFormat("    ... and {0} more", failures.Count - ListedFailures);
