@@ -147,10 +147,13 @@ namespace Bari.Plugins.VsCore.Build
         {
             string slnPath = Uid + ".sln";
 
-            using (var sln = targetDir.CreateTextFile(slnPath))
+            using (var sln = new Utf8StringWriter())
             {
                 var generator = new SlnGenerator(projectGuidManagement, projectPlatformManagement, supportedSlnProjects, projects, msBuildVersion, sln, suiteRoot, targetDir, GetInSolutionReferences, solutionItemProviders, Uid);
                 generator.Generate();
+
+                // An unchanged solution is left alone, see UpdateTextFile
+                targetDir.UpdateTextFile(slnPath, sln.ToString());
             }
 
             return new HashSet<TargetRelativePath> { new TargetRelativePath(String.Empty, slnPath) };

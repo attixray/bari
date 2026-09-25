@@ -39,6 +39,48 @@ namespace Bari.Core.Generic
         }
 
         /// <summary>
+        /// Writes a text file only if its contents differ from the given text.
+        ///
+        /// <para>Generated project files are regenerated on every build. Leaving an unchanged file alone
+        /// keeps its timestamp, so MSBuild does not consider the project changed, and tools watching
+        /// the suite (IDEs, language servers) see no event for it.</para>
+        /// </summary>
+        /// <param name="root">The directory of the file</param>
+        /// <param name="name">Name of the file</param>
+        /// <param name="contents">The new contents of the file</param>
+        /// <returns>Returns <c>true</c> if the file was written.</returns>
+        public static bool UpdateTextFile(this IFileSystemDirectory root, string name, string contents)
+        {
+            Contract.Requires(root != null);
+            Contract.Requires(!String.IsNullOrWhiteSpace(name));
+            Contract.Requires(contents != null);
+
+            if (root.Exists(name))
+            {
+                try
+                {
+                    using (var reader = root.ReadTextFile(name))
+                    {
+                        if (reader.ReadToEnd() == contents)
+                            return false;
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    // Not readable as a file; overwrite it
+                }
+                catch (IOException)
+                {
+                    // Being written by someone else; overwrite it
+                }
+            }
+
+            using (var writer = root.CreateTextFile(name))
+                writer.Write(contents);
+            return true;
+        }
+
+        /// <summary>
         /// Creates a binary file in the given directory, or in a subdirectory of it.
         /// If the subdirectory does not exist, it will be created.
         /// </summary>

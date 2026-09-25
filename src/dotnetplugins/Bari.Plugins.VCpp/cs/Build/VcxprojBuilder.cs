@@ -211,8 +211,8 @@ namespace Bari.Plugins.VCpp.Build
             var vcxprojPath = project.Name + ".vcxproj";
             const string csversionPath = "version.cpp";
 
-            var csversion = project.GetVersionSupport() ? project.RootDirectory.CreateTextFile(csversionPath) : null;
-            using (var fsproj = project.RootDirectory.GetChildDirectory("cpp").CreateTextFile(vcxprojPath))
+            var csversion = project.GetVersionSupport() ? new Utf8StringWriter() : null;
+            using (var fsproj = new Utf8StringWriter())
             {
 
                 var references = new HashSet<TargetRelativePath>();
@@ -223,11 +223,14 @@ namespace Bari.Plugins.VCpp.Build
                 }
 
                 generator.Generate(project, references, fsproj, csversion, csversionPath);
+
+                // Unchanged project files are left alone, see UpdateTextFile
+                project.RootDirectory.GetChildDirectory("cpp").UpdateTextFile(vcxprojPath, fsproj.ToString());
             }
 
             if (csversion != null)
             {
-                csversion.Close();
+                project.RootDirectory.UpdateTextFile(csversionPath, csversion.ToString());
                 csversion.Dispose();
             }
 
