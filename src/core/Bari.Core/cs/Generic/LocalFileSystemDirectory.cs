@@ -237,7 +237,7 @@ namespace Bari.Core.Generic
         /// <param name="name">Name of the directory</param>
         public void DeleteDirectory(string name)
         {
-            TransientDelete.DeleteDirectory(Path.Combine(path, name));
+            TransientDelete.DeleteDirectoryTree(Path.Combine(path, name));
         }
 
         /// <summary>
@@ -254,37 +254,67 @@ namespace Bari.Core.Generic
         /// </summary>
         public void Delete()
         {
-            TransientDelete.DeleteDirectory(path);
+            TransientDelete.DeleteDirectoryTree(path);
         }
 
         /// <summary>
         /// Partially deletes the directory, based on a filter function
         /// </summary>
         /// <param name="filter">Filter function, a relative path, and if it returns <c>true</c>, the file/directory is going to be deleted</param>
+        /// <exception cref="PartialDeleteException">Thrown if some entries could not be deleted; all others are.</exception>
         public void Delete(Func<string, bool> filter)
         {
-            Delete(filter, String.Empty);
+            var files = new List<string>();
+            CollectFiles(filter, String.Empty, files);
+
+            var failures = new List<string>();
+            TransientDelete.DeleteFiles(files, failures);
+            DeleteEmptyDirectories(filter, String.Empty, failures);
+            if (failures.Count > 0)
+                throw new PartialDeleteException(path, failures);
         }
 
-        private void Delete(Func<string, bool> filter, string prefix)
+        private void CollectFiles(Func<string, bool> filter, string prefix, List<string> files)
         {
             foreach (var child in ChildDirectories)
             {
                 var wrapper = (LocalFileSystemDirectory)GetChildDirectory(child);
-                wrapper.Delete(filter, Path.Combine(prefix, child));
+                wrapper.CollectFiles(filter, Path.Combine(prefix, child), files);
             }
 
             foreach (var file in Files)
             {
                 if (filter(Path.Combine(prefix, file)))
-                    DeleteFile(file);
+                    files.Add(Path.Combine(path, file));
+            }
+        }
+
+        private void DeleteEmptyDirectories(Func<string, bool> filter, string prefix, List<string> failures)
+        {
+            foreach (var child in ChildDirectories)
+            {
+                var wrapper = (LocalFileSystemDirectory)GetChildDirectory(child);
+                wrapper.DeleteEmptyDirectories(filter, Path.Combine(prefix, child), failures);
             }
 
             if (!ChildDirectories.Any() &&
                 !Files.Any())
             {
                 if (filter(prefix))
-                    Delete();
+                {
+                    try
+                    {
+                        Delete();
+                    }
+                    catch (PartialDeleteException ex)
+                    {
+                        failures.AddRange(ex.Failures);
+                    }
+                    catch (Exception ex) when (TransientDelete.IsDeleteFailure(ex))
+                    {
+                        failures.Add(ex.Message);
+                    }
+                }
             }
         }
 

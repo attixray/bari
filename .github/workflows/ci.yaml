@@ -35,6 +35,34 @@ jobs:
         with:
           name: bari-net10
           path: target/full/
+      - name: Test the install script
+        # Parse it with Windows PowerShell, which selfupdate runs it with, then install the latest
+        # release into a temporary directory twice, so the second run replaces the first.
+        shell: powershell
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD\scripts\install-bari.ps1", [ref]$null, [ref]$errors) | Out-Null
+          if ($errors) { $errors | ForEach-Object { Write-Error $_.ToString() }; exit 1 }
+          $dir = Join-Path $env:RUNNER_TEMP 'bari-install'
+          .\scripts\install-bari.ps1 -InstallDir $dir
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          .\scripts\install-bari.ps1 -InstallDir $dir
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if (-not (Test-Path "$dir\bari.dll") -or -not (Test-Path "$dir.previous\bari.dll")) { throw 'The install script did not install and keep the previous installation.' }
+          # An installation in use is kept, and so is the previous one.
+          $held = [IO.File]::Open("$dir\bari.dll", 'Open', 'Read', 'Read')
+          try {
+            .\scripts\install-bari.ps1 -InstallDir $dir
+            if ($LASTEXITCODE -ne 1) { throw 'The install script replaced an installation in use.' }
+          } finally { $held.Close() }
+          if (-not (Test-Path "$dir\bari.dll") -or -not (Test-Path "$dir.previous\bari.dll") -or (Test-Path "$dir.new")) { throw 'A refused update changed the existing installations.' }
+          # Read all of the output: a pipeline that stops early closes bari's output and fails the step.
+          $help = & "$dir\bari.exe" help
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $help | Select-Object -First 2
+          if (-not ($help -match '^bari version [1-9]')) { throw 'The installed bari did not report its version.' }
 
   release:
     # A pushed tag, or a manual run naming an existing tag, becomes a GitHub release
@@ -45,6 +73,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      # The install script comes from the commit this run belongs to, so a release of an older
+      # tag gets the current script.
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/install-bari.ps1
+          sparse-checkout-cone-mode: false
       - uses: actions/download-artifact@v7
         with:
           name: bari-net10
@@ -59,11 +93,18 @@ jobs:
           set -euo pipefail
           zip_name="bari-$TAG-net10.zip"
           (cd bari && zip -qr "../$zip_name" .)
-          sha256sum "$zip_name" > SHA256SUMS
+          cp scripts/install-bari.ps1 .
+          sha256sum "$zip_name" install-bari.ps1 > SHA256SUMS
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            # Run again for a published release: replace its files.
+            gh release upload "$TAG" "$zip_name" install-bari.ps1 SHA256SUMS --clobber
+            exit 0
+          fi
           cat > notes.md <<NOTES
           Framework-dependent build of bari; it needs the .NET 10 runtime.
-          Unzip $zip_name and replace the whole installation directory with it.
+          Install or update with install-bari.ps1 or bari selfupdate.
+          To install by hand, unzip $zip_name and replace the whole installation directory with it.
           NOTES
           gh release create "$TAG" --verify-tag --draft --title "bari $TAG" --notes-file notes.md --generate-notes
-          gh release upload "$TAG" "$zip_name" SHA256SUMS
+          gh release upload "$TAG" "$zip_name" install-bari.ps1 SHA256SUMS
           gh release edit "$TAG" --draft=false

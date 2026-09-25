@@ -144,12 +144,16 @@ The two options can be used together!
 
         private void CleanWarning(Exception ex)
         {
-            output.Warning(String.Format("Failed to clean target root: {0}", ex.Message),
-                new[]
+            // When every entry left names the processes holding it, the hints add nothing.
+            var failures = (ex as PartialDeleteException)?.Failures ?? new[] { ex.Message };
+            var hints = failures.All(failure => failure.Contains("Held by: "))
+                ? null
+                : new[]
                 {
                     "A command prompt may have its current directory set there",
                     "Maybe the process is running"
-                });
+                };
+            output.Warning(String.Format("Failed to clean target root: {0}", ex.Message), hints);
         }
     }
 }
