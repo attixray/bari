@@ -330,7 +330,7 @@ namespace Bari.Core.Test.Generic
                     Action delete = () => dir.DeleteFile("held.csproj");
 
                     delete.Should().Throw<IOException>()
-                        .WithMessage("*Held by: *" + Process.GetCurrentProcess().ProcessName + " (" + Environment.ProcessId + ")*");
+                        .WithMessage("*Held by: *" + System.Diagnostics.Process.GetCurrentProcess().ProcessName + " (" + Environment.ProcessId + ")*");
                 }
                 File.Exists(file).Should().BeTrue();
             }

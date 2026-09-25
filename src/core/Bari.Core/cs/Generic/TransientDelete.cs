@@ -141,7 +141,7 @@ namespace Bari.Core.Generic
         {
             try
             {
-                using (var process = Process.GetProcessById(info.Process.ProcessId))
+                using (var process = System.Diagnostics.Process.GetProcessById(info.Process.ProcessId))
                     return process.ProcessName;
             }
             catch (ArgumentException)
