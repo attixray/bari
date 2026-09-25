@@ -1,4 +1,5 @@
-﻿using Bari.Core.Commands;
+﻿using System.IO;
+using Bari.Core.Commands;
 using Bari.Core.Commands.Clean;
 using Bari.Core.Exceptions;
 using Bari.Core.Generic;
@@ -94,6 +95,52 @@ namespace Bari.Core.Test.Commands
 
             c1.Verify(c => c.Clean(It.IsNotNull<ICleanParameters>()), Times.Once());
             c2.Verify(c => c.Clean(It.IsNotNull<ICleanParameters>()), Times.Once());
+        }
+
+        [Test]
+        public void KeepsVisualStudioStateInTarget()
+        {
+            using (var tmp = new TempDirectory())
+            {
+                var root = Path.Combine(tmp, "target");
+                var vsIndex = Path.Combine(root, ".vs", "product", "FileContentIndex", "index.vsidx");
+                var output = Path.Combine(root, "module", "App.dll");
+                Directory.CreateDirectory(Path.GetDirectoryName(vsIndex));
+                Directory.CreateDirectory(Path.GetDirectoryName(output));
+                File.WriteAllText(vsIndex, "state");
+                File.WriteAllText(output, "build");
+                File.WriteAllText(Path.Combine(root, "product.sln"), "solution");
+
+                var cmd = new CleanCommand(new LocalFileSystemDirectory(root), new ICleanExtension[0],
+                    new TestUserOutput(), new SoftCleanPredicates());
+                cmd.Run(suite, new string[0]);
+
+                File.Exists(vsIndex).Should().BeTrue();
+                Directory.Exists(Path.Combine(root, "module")).Should().BeFalse();
+                File.Exists(Path.Combine(root, "product.sln")).Should().BeFalse();
+            }
+        }
+
+        [Test]
+        public void SoftCleanKeepsVisualStudioStateInTarget()
+        {
+            using (var tmp = new TempDirectory())
+            {
+                var root = Path.Combine(tmp, "target");
+                var suo = Path.Combine(root, ".vs", "product", "v18", ".suo");
+                var output = Path.Combine(root, "module", "App.dll");
+                Directory.CreateDirectory(Path.GetDirectoryName(suo));
+                Directory.CreateDirectory(Path.GetDirectoryName(output));
+                File.WriteAllText(suo, "state");
+                File.WriteAllText(output, "build");
+
+                var cmd = new CleanCommand(new LocalFileSystemDirectory(root), new ICleanExtension[0],
+                    new TestUserOutput(), new SoftCleanPredicates());
+                cmd.Run(suite, new[] { "--soft-clean" });
+
+                File.Exists(suo).Should().BeTrue();
+                File.Exists(output).Should().BeFalse();
+            }
         }
     }
 }

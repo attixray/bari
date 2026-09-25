@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Bari.Core.Generic;
 using Bari.Core.Model;
 using Bari.Core.UI;
@@ -17,6 +18,12 @@ namespace Bari.Core.Commands.Clean
         private readonly IEnumerable<ICleanExtension> extensions;
         private readonly IUserOutput output;
         private readonly ISoftCleanPredicates predicates;
+
+        // Visual Studio keeps a solution's state (.suo, breakpoints, open documents, its file
+        // content index) in a .vs directory next to the solution. For solutions generated into
+        // target it is target/.vs, and Visual Studio keeps files in it open while the solution
+        // is loaded, so deleting it fails and loses that state.
+        private const string VisualStudioStateDirectory = ".vs";
 
         /// <summary>
         /// Constructs the command
@@ -70,6 +77,9 @@ When used with the `--soft-clean` option, it keeps some files not directly relat
 such as `.suo` files.
 Example: `bari clean --soft-clean`
 
+It always keeps `target/.vs`, where Visual Studio stores the state of the solutions generated
+into `target`.
+
 The two options can be used together!
 ";
 
@@ -98,7 +108,11 @@ The two options can be used together!
             {
                 if (cleanParams.SoftClean)
                 {
-                    targetRoot.Delete(predicates.ShouldDelete);
+                    targetRoot.Delete(path => !IsVisualStudioState(path) && predicates.ShouldDelete(path));
+                }
+                else if (targetRoot.ChildDirectories.Any(IsVisualStudioState))
+                {
+                    targetRoot.Delete(path => !IsVisualStudioState(path));
                 }
                 else
                 {
@@ -120,6 +134,12 @@ The two options can be used together!
             }
 
             return true;
+        }
+
+        private static bool IsVisualStudioState(string relativePath)
+        {
+            return relativePath.Equals(VisualStudioStateDirectory, StringComparison.OrdinalIgnoreCase) ||
+                   relativePath.StartsWith(VisualStudioStateDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
         }
 
         private void CleanWarning(Exception ex)
