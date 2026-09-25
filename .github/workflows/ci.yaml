@@ -51,6 +51,13 @@ jobs:
           .\scripts\install-bari.ps1 -InstallDir $dir
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           if (-not (Test-Path "$dir\bari.dll") -or -not (Test-Path "$dir.previous\bari.dll")) { throw 'The install script did not install and keep the previous installation.' }
+          # An installation in use is kept, and so is the previous one.
+          $held = [IO.File]::Open("$dir\bari.dll", 'Open', 'Read', 'Read')
+          try {
+            .\scripts\install-bari.ps1 -InstallDir $dir
+            if ($LASTEXITCODE -ne 1) { throw 'The install script replaced an installation in use.' }
+          } finally { $held.Close() }
+          if (-not (Test-Path "$dir\bari.dll") -or -not (Test-Path "$dir.previous\bari.dll") -or (Test-Path "$dir.new")) { throw 'A refused update changed the existing installations.' }
           # Read all of the output: a pipeline that stops early closes bari's output and fails the step.
           $help = & "$dir\bari.exe" help
           if ($LASTEXITCODE) { exit $LASTEXITCODE }

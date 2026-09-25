@@ -85,20 +85,28 @@ function Install-Bari {
             }
         }
 
+        # The old installation moves aside first; the old .previous is replaced only once the new
+        # installation is in place, so a failed update keeps every existing copy.
         $hadInstallation = Test-Path $InstallDir
+        $aside = "$InstallDir.replacing"
         if ($hadInstallation) {
-            if (Test-Path $previous) { Remove-Item $previous -Recurse -Force }
+            if (Test-Path $aside) { Remove-Item $aside -Recurse -Force }
             try {
-                Rename-Item $InstallDir (Split-Path $previous -Leaf)
+                Rename-Item $InstallDir (Split-Path $aside -Leaf)
             } catch {
+                Remove-Item $staged -Recurse -Force -ErrorAction SilentlyContinue
                 throw "Could not move $InstallDir aside. Is a bari from it still running? $($_.Exception.Message)"
             }
         }
         try {
             Rename-Item $staged (Split-Path $InstallDir -Leaf)
         } catch {
-            if ($hadInstallation) { Rename-Item $previous (Split-Path $InstallDir -Leaf) }
+            if ($hadInstallation) { Rename-Item $aside (Split-Path $InstallDir -Leaf) }
             throw
+        }
+        if ($hadInstallation) {
+            if (Test-Path $previous) { Remove-Item $previous -Recurse -Force }
+            Rename-Item $aside (Split-Path $previous -Leaf)
         }
 
         Write-Host "Installed bari $($release.tag_name) in $InstallDir."
